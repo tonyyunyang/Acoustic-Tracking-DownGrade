@@ -495,26 +495,27 @@ public class MainActivity extends AppCompatActivity {
         int width = spectrogram[0].length;
         int height = spectrogram.length;
 
-        // Calculate the frequency range indices
-        int startFrequencyBin = calculateFrequencyBinIndex(12000, width);
-        int endFrequencyBin = calculateFrequencyBinIndex(13000, width);
+        // Calculate the frequency indices corresponding to the desired range
+        double frequencyResolution = SAMPLING_RATE_IN_HZ / (2 * height);
+        int lowerFrequencyIndex = (int) Math.floor(START_FREQUENCY / frequencyResolution);
+        int upperFrequencyIndex = (int) Math.ceil(END_FREQUENCY / frequencyResolution);
 
         // Scale up the spectrogram to the target dimensions
-        Bitmap bitmap = Bitmap.createBitmap(width, endFrequencyBin - startFrequencyBin, Bitmap.Config.ARGB_8888);
+        Bitmap bitmap = Bitmap.createBitmap(width, upperFrequencyIndex - lowerFrequencyIndex, Bitmap.Config.ARGB_8888);
         Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, false);
 
         // Iterate over the spectrogram and set pixel colors based on the 'jet' colormap
         for (int x = 0; x < targetWidth; x++) {
-            for (int y = 0; y < targetHeight; y++) {
+            for (int y = 0; y < upperFrequencyIndex - lowerFrequencyIndex; y++) {
                 // Map the pixel coordinates to the spectrogram indices
                 int originalX = x * width / targetWidth;
-                int originalY = startFrequencyBin + y * (endFrequencyBin - startFrequencyBin) / targetHeight;
+                int originalY = (upperFrequencyIndex - y - 1) * height / (upperFrequencyIndex - lowerFrequencyIndex);
 
                 // Get the magnitude value at the corresponding spectrogram indices
                 double magnitude = spectrogram[originalY][originalX];
 
                 // Map the magnitude value to the 'jet' colormap
-                int color = getJetColorFromMagnitude(magnitude);
+                int color = getPlasmaColorFromMagnitude(magnitude);
 
                 // Set the pixel color in the scaled bitmap
                 scaledBitmap.setPixel(x, y, color);
@@ -581,7 +582,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private static int getPlasmaColorFromMagnitude(double magnitude) {
-        double maxMagnitude = 100;
+        double maxMagnitude = 200;
         double scaledMagnitude = magnitude / maxMagnitude;
 
         int color = Color.rgb(
