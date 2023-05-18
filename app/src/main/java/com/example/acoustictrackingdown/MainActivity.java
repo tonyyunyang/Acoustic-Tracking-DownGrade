@@ -9,7 +9,6 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.graphics.Paint;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
@@ -23,23 +22,23 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-import org.jtransforms.fft.DoubleFFT_1D;
+import org.apache.commons.math3.complex.Complex;
+import org.apache.commons.math3.transform.DftNormalization;
+import org.apache.commons.math3.transform.FastFourierTransformer;
+import org.apache.commons.math3.transform.TransformType;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
 
     private Button specButton, trackButton;
-    private ImageView spectrogram;
+    private ImageView spectrogramFull, spectrogramExtract;
     private static String FILE_NAME = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".pcm"; // File name with current date and time
     private static String FILE_NAME_2 = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_processed" + ".pcm"; // File name with current date and time
     private static final int RECORDING_DURATION = 500; // in milliseconds
@@ -51,16 +50,20 @@ public class MainActivity extends AppCompatActivity {
     private static final int DURATION = 10; // in milliseconds
     private static double[] CHIRP_SIGNAL = null;
     private static AudioTrack CHIRP_AUDIO = null;
+    private static final int WINDOW_SIZE = 256;
+    private static final int OVERLAP = 128;
+    private static final int FFT_SIZE = WINDOW_SIZE;
+
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        specButton = (Button) findViewById(R.id.spectrogram_button);
+        specButton = (Button) findViewById(R.id.full_spectrogram_button);
         trackButton = (Button) findViewById(R.id.acoustic_button);
-        spectrogram = (ImageView) findViewById(R.id.Spectrogram);
-
+        spectrogramFull = (ImageView) findViewById(R.id.Spectrogram_Full);
+        spectrogramExtract = (ImageView) findViewById(R.id.extracted_spectrogram);
 
         // set listener for the track button
         trackButton.setOnClickListener(new View.OnClickListener() {
@@ -94,7 +97,9 @@ public class MainActivity extends AppCompatActivity {
                 trackButton.setEnabled(false);
                 specButton.setEnabled(false);
                 Bitmap plot = plotSpectrogram();
-                spectrogram.setImageBitmap(plot);
+                spectrogramFull.setImageBitmap(plot);
+                Bitmap plot2 = plotSpectrogram2();
+                spectrogramExtract.setImageBitmap(plot2);
                 Toast.makeText(getApplicationContext(), "Spectrogram Generated", Toast.LENGTH_SHORT).show();
                 trackButton.setEnabled(true);
                 specButton.setEnabled(true);
@@ -105,15 +110,19 @@ public class MainActivity extends AppCompatActivity {
     private String generateFileName() {
         return new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".pcm";
     }
+
     private String generateFilePath() {
         return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + FILE_NAME;
     }
+
     private String generateFileName2() {
         return new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_processed" + ".pcm";
     }
+
     private String generateFilePath2() {
         return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + FILE_NAME_2;
     }
+
     private void recordAudio(int durationMs) {
         AudioRecord recorder = null;
         FileOutputStream outputStream = null;
@@ -180,6 +189,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
     public double[] generateChirpSignal() {
         int numSamples = DURATION * SAMPLING_RATE_IN_HZ / 1000;
         double[] buffer = new double[numSamples];
@@ -197,6 +207,7 @@ public class MainActivity extends AppCompatActivity {
         }
         return buffer;
     }
+
     public AudioTrack formAudioTrack(double[] buffer) {
         int numSamples = buffer.length;
         int bufferSize = numSamples * 2;
@@ -213,6 +224,7 @@ public class MainActivity extends AppCompatActivity {
 
         return audioTrack;
     }
+
     private short[] shortArrayFromDoubleArray(double[] buffer) {
         short[] output = new short[buffer.length];
         for (int i = 0; i < buffer.length; i++) {
@@ -220,6 +232,7 @@ public class MainActivity extends AppCompatActivity {
         }
         return output;
     }
+
     private double findChirpSignal(double[] chirpSignal, String filePath) {
         File file = new File(filePath);
         byte[] byteBuffer = new byte[(int) file.length()];
@@ -236,7 +249,7 @@ public class MainActivity extends AppCompatActivity {
         double[] audioSignal = new double[numSamples];
 
         for (int i = 0; i < numSamples; i++) {
-            audioSignal[i] = ((short) ((byteBuffer[2 * i + 1] << 8) | byteBuffer[2 * i])) / 32768.0;
+            audioSignal[i] = ((double) ((byteBuffer[2 * i + 1] << 8) | (byteBuffer[2 * i] & 0xff))) / 32768.0;
         }
 
         int maxLag = numSamples - chirpSignal.length;
@@ -260,6 +273,7 @@ public class MainActivity extends AppCompatActivity {
         double timeInMS = (maxIndex / (double) SAMPLING_RATE_IN_HZ) * 1000.0;
         return timeInMS;
     }
+
     private void extractAudioSegment() {
         try {
             // Set the length of the audio segment to 100ms
@@ -300,6 +314,64 @@ public class MainActivity extends AppCompatActivity {
         // Read the .pcm audio file into a byte array
         byte[] audioData = null;
         try {
+            File audioFile = new File(generateFilePath());
+            audioData = new byte[(int) audioFile.length()];
+            FileInputStream inputStream = new FileInputStream(audioFile);
+            inputStream.read(audioData);
+            inputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (audioData == null) {
+            // Error reading the audio file
+            Toast.makeText(getApplicationContext(), "Audio file empty", Toast.LENGTH_SHORT).show();
+            return null;
+        }
+
+        int numSmaples = audioData.length / 2;
+        double[] audioSamplesDouble = new double[numSmaples];
+
+        for (int i = 0; i < numSmaples; i++) {
+            audioSamplesDouble[i] = (audioData[2 * i + 1] << 8) | (audioData[2 * i] & 0xff);
+        }
+
+        Log.d("The audio length ", String.valueOf(audioSamplesDouble.length));
+
+        // STFT, determine the size of the 2D array spectrogram first
+        int frameBin = (int) Math.floor((audioSamplesDouble.length - WINDOW_SIZE) / OVERLAP) + 1;
+        int frequencyBin = (int) Math.floor(FFT_SIZE / 2) + 1;
+        double[][] spectrogram = new double[frequencyBin][frameBin];
+
+        // Perform STFT and populate the spectrogram array
+        // Iterate over frames
+        for (int frame = 0; frame < frameBin; frame++) {
+            // Apply window function to the frame
+            double[] windowedFrame = applyWindow(audioSamplesDouble, frame * OVERLAP, WINDOW_SIZE);
+
+            // Compute FFT on the windowed frame
+            Complex[] fftResult = computeFFT(windowedFrame, FFT_SIZE);
+
+            // Populate the spectrogram array with the magnitude of FFT bins
+            for (int frequency = 0; frequency < frequencyBin; frequency++) {
+                spectrogram[frequency][frame] = computeMagnitude(fftResult[frequency]);
+            }
+        }
+
+        Log.d("The height of spectrogram is ", String.valueOf(frequencyBin));
+        Log.d("The width of spectrogram is ", String.valueOf(frameBin));
+
+        // plot the bitmap
+        int targetWidth = frameBin * 4; // Example target width
+        int targetHeight = frequencyBin * 4; // Example target height
+
+        Bitmap spectrogramBitmap = plotFullSpectrogram(spectrogram, targetWidth, targetHeight);
+        return spectrogramBitmap;
+    }
+
+    private Bitmap plotSpectrogram2() {
+        // Read the .pcm audio file into a byte array
+        byte[] audioData = null;
+        try {
             File audioFile = new File(generateFilePath2());
             audioData = new byte[(int) audioFile.length()];
             FileInputStream inputStream = new FileInputStream(audioFile);
@@ -314,146 +386,202 @@ public class MainActivity extends AppCompatActivity {
             return null;
         }
 
-//        // Convert bytes to short array (assuming 16-bit PCM audio)
-//        short[] audioSamples = new short[audioData.length / 2];
-//        ByteBuffer.wrap(audioData).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(audioSamples);
-//
-//        // Convert short array to double array
-//        double[] audioSamplesDouble = new double[audioSamples.length];
-//        for (int i = 0; i < audioSamples.length; i++) {
-//            audioSamplesDouble[i] = audioSamples[i] / 32768.0; // Normalize to range [-1.0, 1.0]
-//        }
-
         int numSmaples = audioData.length / 2;
         double[] audioSamplesDouble = new double[numSmaples];
 
         for (int i = 0; i < numSmaples; i++) {
-            audioSamplesDouble[i] = ((short) ((audioData[2 * i + 1] << 8) | audioData[2 * i])) / 32768.0;
+            audioSamplesDouble[i] = (audioData[2 * i + 1] << 8) | (audioData[2 * i] & 0xff);
         }
 
-        Log.d("", String.valueOf(numSmaples));
+        Log.d("The audio length ", String.valueOf(audioSamplesDouble.length));
 
-        // Compute the spectrogram
-        int fftSize = 256; // Size of the FFT (power of 2 for optimal performance)
-        int hopSize = 128; // Number of samples between consecutive frames
-        int windowSize = fftSize; // Size of the analysis window
+        // STFT, determine the size of the 2D array spectrogram first
+        int frameBin = (int) Math.floor((audioSamplesDouble.length - WINDOW_SIZE) / OVERLAP) + 1;
+        int frequencyBin = (int) Math.floor(FFT_SIZE / 2) + 1;
+        double[][] spectrogram = new double[frequencyBin][frameBin];
 
-        double[][] spectrogramData = new double[(audioSamplesDouble.length - windowSize) / hopSize + 1][fftSize / 2];
+        // Perform STFT and populate the spectrogram array
+        // Iterate over frames
+        for (int frame = 0; frame < frameBin; frame++) {
+            // Apply window function to the frame
+            double[] windowedFrame = applyWindow(audioSamplesDouble, frame * OVERLAP, WINDOW_SIZE);
 
-        // Compute the spectrogram frame by frame
-        for (int i = 0; i < spectrogramData.length; i++) {
-            // Apply the analysis window to the audio frame
-            double[] audioFrame = Arrays.copyOfRange(audioSamplesDouble, i * hopSize, i * hopSize + windowSize);
-            double[] windowedFrame = audioFrame; // Apply the desired windowing function
+            // Compute FFT on the windowed frame
+            Complex[] fftResult = computeFFT(windowedFrame, FFT_SIZE);
 
-            // Compute the FFT of the windowed frame
-            DoubleFFT_1D fftTransformer = new DoubleFFT_1D(fftSize);
-            double[] fft = new double[fftSize * 2];
-            System.arraycopy(windowedFrame, 0, fft, 0, windowSize); // Zero-pad if necessary
-
-            fftTransformer.realForwardFull(fft);
-
-            // Compute the magnitude spectrum (half of the FFT)
-            for (int j = 0; j < fftSize / 2; j++) {
-                double real = fft[2 * j];
-                double imag = fft[2 * j + 1];
-                double magnitude = Math.sqrt(real * real + imag * imag);
-                spectrogramData[i][j] = magnitude;
+            // Populate the spectrogram array with the magnitude of FFT bins
+            for (int frequency = 0; frequency < frequencyBin; frequency++) {
+                spectrogram[frequency][frame] = computeMagnitude(fftResult[frequency]);
             }
         }
 
-        // Set up the dimensions of the spectrogram
-        int width = spectrogramData.length; // Number of time frames
-//        int height = spectrogramData[0].length; // Number of frequency bins
-        double minFrequency = START_FREQUENCY; // Minimum frequency of interest in Hz
-        double maxFrequency = END_FREQUENCY; // Maximum frequency of interest in Hz
-        int minIndex = (int) (minFrequency * fftSize / 44100.0);
-        int maxIndex = (int) (maxFrequency * fftSize / 44100.0);
+        Log.d("The height of spectrogram is ", String.valueOf(frequencyBin));
+        Log.d("The width of spectrogram is ", String.valueOf(frameBin));
 
-        int croppedHeight = maxIndex - minIndex; // Height of the cropped spectrogram
-        Bitmap croppedBitmap = Bitmap.createBitmap(width, croppedHeight, Bitmap.Config.ARGB_8888);
+        // plot the bitmap
+        int targetWidth = frameBin * 4; // Example target width
+        int targetHeight = frequencyBin * 4; // Example target height
 
-        croppedBitmap.eraseColor(Color.WHITE); // Set the background color
-
-        // Set up the paint for drawing
-        Paint paint = new Paint();
-        paint.setStyle(Paint.Style.FILL);
-
-        // Define the color range (adjust as desired)
-        int minColor = Color.BLACK;
-        int maxColor = Color.WHITE;
-
-        double minMagnitude = Double.MIN_VALUE;
-        double maxMagnitude = Double.MAX_VALUE;
-
-        // Iterate over the spectrogram data to find the minimum and maximum magnitudes
-        for (int i = 0; i < spectrogramData.length; i++) {
-            for (int j = 0; j < spectrogramData[0].length; j++) {
-                double magnitude = spectrogramData[i][j];
-                minMagnitude = Math.min(minMagnitude, magnitude);
-                maxMagnitude = Math.max(maxMagnitude, magnitude);
-            }
-        }
-
-        // Plot the spectrogram data
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < croppedHeight; j++) {
-                // Get the magnitude value
-                double magnitude = spectrogramData[i][j];
-
-                // Map the magnitude value to a color using a custom color mapping function
-                int color = mapMagnitudeToColor(magnitude, minColor, maxColor, minMagnitude, maxMagnitude);
-
-                // Set the color of the paint
-                paint.setColor(color);
-
-                // Set the pixel color in the bitmap
-                croppedBitmap.setPixel(i, j, color);
-            }
-        }
-
-        return croppedBitmap;
+        Bitmap spectrogramBitmap = plotFullSpectrogram(spectrogram, targetWidth, targetHeight);
+        return spectrogramBitmap;
     }
 
-    private int mapMagnitudeToColor(double magnitude, int minColor, int maxColor, double minMagnitude, double maxMagnitude) {
-        // Normalize the magnitude value to the range [0, 1]
-        double normalizedMagnitude = (magnitude - minMagnitude) / (maxMagnitude - minMagnitude);
+    private static double[] applyWindow(double[] frame, int startIndex, int windowSize) {
+        double[] windowedFrame = new double[windowSize];
 
-        // Define the color map
-        int[] colorMap = {
-                0xFF000080, // Dark Blue
-                0xFF0000FF, // Blue
-                0xFF00FFFF, // Cyan
-                0xFF00FF00, // Green
-                0xFFFFFF00, // Yellow
-                0xFFFF0000, // Red
-                0xFF800000  // Dark Red
-        };
+        // Apply Hann window to the frame
+        for (int i = 0; i < windowSize; i++) {
+            double windowValue = 0.5 * (1 - Math.cos(2 * Math.PI * i / (windowSize - 1)));
+            windowedFrame[i] = frame[startIndex + i] * windowValue;
+        }
 
-        // Scale the normalized magnitude to the range [0, colorMap.length - 1]
-        double scaledMagnitude = normalizedMagnitude * (colorMap.length - 1);
-
-        // Get the lower and upper color indices
-        int lowerIndex = (int) Math.floor(scaledMagnitude);
-        int upperIndex = lowerIndex + 1;
-
-        // Clip the indices to the valid range
-        lowerIndex = Math.max(0, Math.min(lowerIndex, colorMap.length - 1));
-        upperIndex = Math.max(0, Math.min(upperIndex, colorMap.length - 1));
-
-        // Get the fractional part for interpolation
-        double fraction = scaledMagnitude - lowerIndex;
-
-        // Get the lower and upper colors from the color map
-        int lowerColor = colorMap[lowerIndex];
-        int upperColor = colorMap[upperIndex];
-
-        // Interpolate between the lower and upper colors based on the fraction
-        int red = (int) (Color.red(lowerColor) * (1 - fraction) + Color.red(upperColor) * fraction);
-        int green = (int) (Color.green(lowerColor) * (1 - fraction) + Color.green(upperColor) * fraction);
-        int blue = (int) (Color.blue(lowerColor) * (1 - fraction) + Color.blue(upperColor) * fraction);
-
-        // Combine the RGB channels into a single color value
-        return Color.rgb(red, green, blue);
+        return windowedFrame;
     }
+
+    private static Complex[] computeFFT(double[] windowedFrame, int fftSize) {
+        // Create a transformer for the FFT
+        FastFourierTransformer transformer = new FastFourierTransformer(DftNormalization.STANDARD);
+
+        // Perform the FFT on the windowed frame
+        Complex[] fftResult = transformer.transform(windowedFrame, TransformType.FORWARD);
+
+        // Return the result as an array of complex numbers
+        return fftResult;
+    }
+
+    private static double computeMagnitude(Complex complexValue) {
+        return complexValue.abs();
+    }
+
+    private static Bitmap plotFullSpectrogram(double[][] spectrogram, int targetWidth, int targetHeight) {
+        int width = spectrogram[0].length;
+        int height = spectrogram.length;
+
+        // Scale up the spectrogram to the target dimensions
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, false);
+
+        // Iterate over the spectrogram and set pixel colors based on the 'jet' colormap
+        for (int x = 0; x < targetWidth; x++) {
+            for (int y = 0; y < targetHeight; y++) {
+                // Map the pixel coordinates to the spectrogram indices
+                int originalX = x * width / targetWidth;
+                int originalY = y * height / targetHeight;
+
+                // Get the magnitude value at the corresponding spectrogram indices
+                double magnitude = spectrogram[originalY][originalX];
+
+                // Map the magnitude value to the 'jet' colormap
+                int color = getPlasmaColorFromMagnitude(magnitude);
+
+                // Set the pixel color in the scaled bitmap
+                scaledBitmap.setPixel(x, y, color);
+            }
+        }
+
+        return scaledBitmap;
+    }
+
+    private static Bitmap plotExtractedSpectrogram(double[][] spectrogram, int targetWidth, int targetHeight) {
+        int width = spectrogram[0].length;
+        int height = spectrogram.length;
+
+        // Calculate the frequency range indices
+        int startFrequencyBin = calculateFrequencyBinIndex(12000, width);
+        int endFrequencyBin = calculateFrequencyBinIndex(13000, width);
+
+        // Scale up the spectrogram to the target dimensions
+        Bitmap bitmap = Bitmap.createBitmap(width, endFrequencyBin - startFrequencyBin, Bitmap.Config.ARGB_8888);
+        Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, false);
+
+        // Iterate over the spectrogram and set pixel colors based on the 'jet' colormap
+        for (int x = 0; x < targetWidth; x++) {
+            for (int y = 0; y < targetHeight; y++) {
+                // Map the pixel coordinates to the spectrogram indices
+                int originalX = x * width / targetWidth;
+                int originalY = startFrequencyBin + y * (endFrequencyBin - startFrequencyBin) / targetHeight;
+
+                // Get the magnitude value at the corresponding spectrogram indices
+                double magnitude = spectrogram[originalY][originalX];
+
+                // Map the magnitude value to the 'jet' colormap
+                int color = getJetColorFromMagnitude(magnitude);
+
+                // Set the pixel color in the scaled bitmap
+                scaledBitmap.setPixel(x, y, color);
+            }
+        }
+
+        return scaledBitmap;
+    }
+
+    private static int calculateFrequencyBinIndex(int frequency, int spectrogramHeight) {
+        // Calculate the frequency bin index based on the frequency and spectrogram height
+        return (int) Math.floor((frequency / (SAMPLING_RATE_IN_HZ / 2)) * (spectrogramHeight - 1));
+    }
+
+
+    private static int getJetColorFromMagnitude(double magnitude) {
+        // Map the magnitude value to the 'jet' colormap
+        double maxMagnitude = 150;
+        double scaledMagnitude = magnitude / maxMagnitude; // Scale the magnitude if needed
+
+        // Get the color components (R, G, B) based on the scaled magnitude
+        int r = (int) (255 * scaledMagnitude);
+        int g = (int) (255 * (1 - scaledMagnitude));
+        int b = (int) (255 * (1 - scaledMagnitude * scaledMagnitude * scaledMagnitude));
+
+        // Create the color using RGB components
+        return Color.rgb(r, g, b);
+    }
+
+    private static int getGrayColorFromMagnitude(double magnitude) {
+        double maxMagnitude = 150;
+        double scaledMagnitude = magnitude / maxMagnitude;
+
+        int grayValue = (int) (255 * scaledMagnitude);
+
+        return Color.rgb(grayValue, grayValue, grayValue);
+    }
+
+    private static int getMagmaColorFromMagnitude(double magnitude) {
+        double maxMagnitude = 100;
+        double scaledMagnitude = magnitude / maxMagnitude;
+
+        int r, g, b;
+
+        if (scaledMagnitude < 0.25) {
+            r = (int) (4 * scaledMagnitude * 255);
+            g = 0;
+            b = 0;
+        } else if (scaledMagnitude < 0.5) {
+            r = 255;
+            g = (int) ((4 * scaledMagnitude - 1) * 255);
+            b = 0;
+        } else if (scaledMagnitude < 0.75) {
+            r = (int) ((4 * scaledMagnitude - 2) * 255);
+            g = 255;
+            b = (int) ((4 * scaledMagnitude - 2) * 255);
+        } else {
+            r = (int) ((4 * scaledMagnitude - 3) * 255);
+            g = (int) ((4 * scaledMagnitude - 3) * 255);
+            b = 255;
+        }
+
+        return Color.rgb(r, g, b);
+    }
+
+    private static int getPlasmaColorFromMagnitude(double magnitude) {
+        double maxMagnitude = 100;
+        double scaledMagnitude = magnitude / maxMagnitude;
+
+        int color = Color.rgb(
+                (int) (scaledMagnitude * 255 * 0.082),
+                (int) (scaledMagnitude * 255 * 0.285),
+                (int) (scaledMagnitude * 255 * 0.564)
+        );
+
+        return color;
+    }
+
 }
