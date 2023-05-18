@@ -70,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 trackButton.setEnabled(false);
+                specButton.setEnabled(false);
                 // initialize the chirp signal and audio
                 CHIRP_SIGNAL = generateChirpSignal();
                 CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
@@ -82,11 +83,12 @@ public class MainActivity extends AppCompatActivity {
 //                INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
 //                BYTES_PER_MILLISECOND = 2 * SAMPLING_RATE_IN_HZ / 1000;
                 CharSequence text_time_signal_output = String.valueOf(TIME_SIGNAL_OUTPUT);
-//                Toast.makeText(getApplicationContext(), text_time_signal_output, Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), text_time_signal_output, Toast.LENGTH_SHORT).show();
                 extractAudioSegment();
 //                extractAudioSegmentIndex();
-                Toast.makeText(getApplicationContext(), "Acoustic Tracking Done", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(getApplicationContext(), "Acoustic Tracking Done", Toast.LENGTH_SHORT).show();
                 trackButton.setEnabled(true);
+                specButton.setEnabled(true);
             }
         });
 
@@ -100,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
                 spectrogramFull.setImageBitmap(plot);
                 Bitmap plot2 = plotSpectrogram2();
                 spectrogramExtract.setImageBitmap(plot2);
-                Toast.makeText(getApplicationContext(), "Spectrogram Generated", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(getApplicationContext(), "Spectrogram Generated", Toast.LENGTH_SHORT).show();
                 trackButton.setEnabled(true);
                 specButton.setEnabled(true);
             }
@@ -140,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             // Set up file output stream
             outputStream = new FileOutputStream(generateFilePath());
-            Toast.makeText(getApplicationContext(), generateFilePath(), Toast.LENGTH_SHORT).show();
+//            Toast.makeText(getApplicationContext(), generateFilePath(), Toast.LENGTH_SHORT).show();
 
             // Check recording permissions
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -270,7 +272,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        double timeInMS = (maxIndex / (double) SAMPLING_RATE_IN_HZ) * 1000.0;
+        double timeInMS = ((double) maxIndex / SAMPLING_RATE_IN_HZ) * 1000.0;
         return timeInMS;
     }
 
@@ -415,8 +417,14 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        Log.d("The height of spectrogram is ", String.valueOf(frequencyBin));
-        Log.d("The width of spectrogram is ", String.valueOf(frameBin));
+//        Log.d("The height of spectrogram is ", String.valueOf(frequencyBin));
+//        Log.d("The width of spectrogram is ", String.valueOf(frameBin));
+//
+//        for (int i = 0; i < frameBin; i++) {
+//            for (int j = 0; j < frequencyBin; j++) {
+//                Log.d("", String.valueOf(spectrogram[j][i]));
+//            }
+//        }
 
         // plot the bitmap
         int targetWidth = frameBin * 4; // Example target width
@@ -466,7 +474,7 @@ public class MainActivity extends AppCompatActivity {
             for (int y = 0; y < targetHeight; y++) {
                 // Map the pixel coordinates to the spectrogram indices
                 int originalX = x * width / targetWidth;
-                int originalY = y * height / targetHeight;
+                int originalY = (targetHeight - y - 1) * height / targetHeight; // Flip the vertical axis
 
                 // Get the magnitude value at the corresponding spectrogram indices
                 double magnitude = spectrogram[originalY][originalX];
@@ -482,6 +490,7 @@ public class MainActivity extends AppCompatActivity {
         return scaledBitmap;
     }
 
+    // this is not working yet
     private static Bitmap plotExtractedSpectrogram(double[][] spectrogram, int targetWidth, int targetHeight) {
         int width = spectrogram[0].length;
         int height = spectrogram.length;
