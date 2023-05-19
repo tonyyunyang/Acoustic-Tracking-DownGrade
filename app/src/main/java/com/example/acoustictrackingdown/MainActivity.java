@@ -79,13 +79,14 @@ public class MainActivity extends AppCompatActivity {
                 FILE_NAME_2 = generateFileName2();
                 recordAudio(RECORDING_DURATION);
                 // determine the time of the signal output found via cross correlation
-                TIME_SIGNAL_OUTPUT = findChirpSignal(CHIRP_SIGNAL, generateFilePath());
-//                INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
-//                BYTES_PER_MILLISECOND = 2 * SAMPLING_RATE_IN_HZ / 1000;
-                CharSequence text_time_signal_output = String.valueOf(TIME_SIGNAL_OUTPUT);
-                Toast.makeText(getApplicationContext(), text_time_signal_output, Toast.LENGTH_SHORT).show();
-                extractAudioSegment();
-//                extractAudioSegmentIndex();
+//                TIME_SIGNAL_OUTPUT = findChirpSignal(CHIRP_SIGNAL, generateFilePath());
+                INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
+//                CharSequence text_time_signal_output = String.valueOf(TIME_SIGNAL_OUTPUT);
+//                Toast.makeText(getApplicationContext(), text_time_signal_output, Toast.LENGTH_SHORT).show();
+                CharSequence index_time_signal_output = String.valueOf(INDEX_SIGNAL_OUTPUT);
+                Toast.makeText(getApplicationContext(), index_time_signal_output, Toast.LENGTH_SHORT).show();
+//                extractAudioSegment();
+                extractAudioSegmentIndex();
 //                Toast.makeText(getApplicationContext(), "Acoustic Tracking Done", Toast.LENGTH_SHORT).show();
                 trackButton.setEnabled(true);
                 specButton.setEnabled(true);
@@ -276,6 +277,46 @@ public class MainActivity extends AppCompatActivity {
         return timeInMS;
     }
 
+    private int findChirpSignalIndex(double[] chirpSignal, String filePath) {
+        File file = new File(filePath);
+        byte[] byteBuffer = new byte[(int) file.length()];
+
+        try {
+            InputStream inputStream = new FileInputStream(file);
+            inputStream.read(byteBuffer);
+            inputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        int numSamples = byteBuffer.length / 2;
+        double[] audioSignal = new double[numSamples];
+
+        for (int i = 0; i < numSamples; i++) {
+            audioSignal[i] = ((short) ((byteBuffer[2 * i + 1] << 8) | byteBuffer[2 * i])) / 32768.0;
+        }
+
+        int maxLag = numSamples - chirpSignal.length;
+        double[] crossCorr = new double[maxLag];
+
+        for (int lag = 0; lag < maxLag; lag++) {
+            double sum = 0.0;
+            for (int i = 0; i < chirpSignal.length; i++) {
+                sum += chirpSignal[i] * audioSignal[lag + i];
+            }
+            crossCorr[lag] = sum;
+        }
+
+        int maxIndex = 0;
+        for (int i = 0; i < maxLag; i++) {
+            if (crossCorr[i] > crossCorr[maxIndex]) {
+                maxIndex = i;
+            }
+        }
+
+        return maxIndex;
+    }
+
     private void extractAudioSegment() {
         try {
             // Set the length of the audio segment to 100ms
@@ -283,8 +324,46 @@ public class MainActivity extends AppCompatActivity {
 
             // Calculate the start and end positions of the segment
 //            int startPos = (int) (TIME_SIGNAL_OUTPUT * SAMPLING_RATE_IN_HZ / 1000); // in bytes
-            int startPos = (int) ((TIME_SIGNAL_OUTPUT * 2 * SAMPLING_RATE_IN_HZ / 1000) + (DURATION * 2 * SAMPLING_RATE_IN_HZ / 1000)); // in bytes
-            int endPos = startPos + segmentLength * SAMPLING_RATE_IN_HZ * 2 / 1000; // in bytes
+//            int startPos = (int) ((TIME_SIGNAL_OUTPUT * 2 * SAMPLING_RATE_IN_HZ / 1000) + (DURATION * 2 * SAMPLING_RATE_IN_HZ / 1000)); // in bytes
+            int startPos = (int) ((TIME_SIGNAL_OUTPUT + DURATION) * 2 * SAMPLING_RATE_IN_HZ / 1000);
+            int endPos = startPos + (segmentLength * SAMPLING_RATE_IN_HZ * 2 / 1000); // in bytes
+
+            // Open the source file for reading
+            FileInputStream inputStream = new FileInputStream(generateFilePath());
+
+            // Create a buffer to hold the audio data
+            byte[] buffer = new byte[endPos - startPos];
+
+            // Read the audio data from the source file into the buffer
+            inputStream.skip(startPos);
+            inputStream.read(buffer);
+
+            // Close the input stream
+            inputStream.close();
+
+            // Open the target file for writing
+            FileOutputStream outputStream = new FileOutputStream(generateFilePath2());
+
+            // Write the audio data to the target file
+            outputStream.write(buffer);
+
+            // Close the output stream
+            outputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void extractAudioSegmentIndex() {
+        try {
+            // Set the length of the audio segment to 100ms
+            int segmentLength = 150; // in milliseconds
+
+            // Calculate the start and end positions of the segment
+//            int startPos = INDEX_SIGNAL_OUTPUT; // in bytes
+            int startPos = (INDEX_SIGNAL_OUTPUT * 2) + (SAMPLING_RATE_IN_HZ * DURATION * 2 / 1000); // in bytes
+//            int endPos = startPos + segmentLength * BYTES_PER_MILLISECOND; // in bytes
+            int endPos = startPos + (segmentLength * SAMPLING_RATE_IN_HZ * 2 / 1000); // in bytes
 
             // Open the source file for reading
             FileInputStream inputStream = new FileInputStream(generateFilePath());
