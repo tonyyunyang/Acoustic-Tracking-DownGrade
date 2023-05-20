@@ -548,6 +548,9 @@ public class MainActivity extends AppCompatActivity {
         Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, false);
 
+        // Normalize the spectrogram values between 0 and 1
+        double[][] normalizedSpectrogram = normalizeSpectrogram(spectrogram);
+
         // Iterate over the spectrogram and set pixel colors based on the 'jet' colormap
         for (int x = 0; x < targetWidth; x++) {
             for (int y = 0; y < targetHeight; y++) {
@@ -556,10 +559,11 @@ public class MainActivity extends AppCompatActivity {
                 int originalY = (targetHeight - y - 1) * height / targetHeight; // Flip the vertical axis
 
                 // Get the magnitude value at the corresponding spectrogram indices
-                double magnitude = spectrogram[originalY][originalX];
+                double magnitude = normalizedSpectrogram[originalY][originalX];
 
                 // Map the magnitude value to the 'jet' colormap
-                int color = getPlasmaColorFromMagnitude(magnitude);
+//                int color = getPlasmaColorFromMagnitude(magnitude);
+                int color = getGrayColorFromMagnitude(magnitude);
 
                 // Set the pixel color in the scaled bitmap
                 scaledBitmap.setPixel(x, y, color);
@@ -571,98 +575,62 @@ public class MainActivity extends AppCompatActivity {
 
     // this is not working yet
     private static Bitmap plotExtractedSpectrogram(double[][] spectrogram, int targetWidth, int targetHeight) {
-        int width = spectrogram[0].length;
+
+        Bitmap nothing = null;
+        return nothing;
+    }
+
+    private static double[][] normalizeSpectrogram(double[][] spectrogram) {
         int height = spectrogram.length;
+        int width = spectrogram[0].length;
 
-        // Calculate the frequency indices corresponding to the desired range
-        double frequencyResolution = SAMPLING_RATE_IN_HZ / (2 * height);
-        int lowerFrequencyIndex = (int) Math.floor(START_FREQUENCY / frequencyResolution);
-        int upperFrequencyIndex = (int) Math.ceil(END_FREQUENCY / frequencyResolution);
+        double maxMagnitude = Double.MIN_VALUE;
+        double minMagnitude = Double.MAX_VALUE;
 
-        // Scale up the spectrogram to the target dimensions
-        Bitmap bitmap = Bitmap.createBitmap(width, upperFrequencyIndex - lowerFrequencyIndex, Bitmap.Config.ARGB_8888);
-        Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, false);
-
-        // Iterate over the spectrogram and set pixel colors based on the 'jet' colormap
-        for (int x = 0; x < targetWidth; x++) {
-            for (int y = 0; y < upperFrequencyIndex - lowerFrequencyIndex; y++) {
-                // Map the pixel coordinates to the spectrogram indices
-                int originalX = x * width / targetWidth;
-                int originalY = (upperFrequencyIndex - y - 1) * height / (upperFrequencyIndex - lowerFrequencyIndex);
-
-                // Get the magnitude value at the corresponding spectrogram indices
-                double magnitude = spectrogram[originalY][originalX];
-
-                // Map the magnitude value to the 'jet' colormap
-                int color = getPlasmaColorFromMagnitude(magnitude);
-
-                // Set the pixel color in the scaled bitmap
-                scaledBitmap.setPixel(x, y, color);
+        // Find the maximum and minimum magnitude values in the spectrogram
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                double magnitude = spectrogram[y][x];
+                maxMagnitude = Math.max(maxMagnitude, magnitude);
+                minMagnitude = Math.min(minMagnitude, magnitude);
             }
         }
 
-        return scaledBitmap;
-    }
+        double[][] normalizedSpectrogram = new double[height][width];
 
-    private static int calculateFrequencyBinIndex(int frequency, int spectrogramHeight) {
-        // Calculate the frequency bin index based on the frequency and spectrogram height
-        return (int) Math.floor((frequency / (SAMPLING_RATE_IN_HZ / 2)) * (spectrogramHeight - 1));
-    }
+        // Normalize the spectrogram values between 0 and 1
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                double magnitude = spectrogram[y][x];
+                double normalizedMagnitude = (magnitude - minMagnitude) / (maxMagnitude - minMagnitude);
+                normalizedSpectrogram[y][x] = normalizedMagnitude;
+            }
+        }
 
-
-    private static int getJetColorFromMagnitude(double magnitude) {
-        // Map the magnitude value to the 'jet' colormap
-        double maxMagnitude = 150;
-        double scaledMagnitude = magnitude / maxMagnitude; // Scale the magnitude if needed
-
-        // Get the color components (R, G, B) based on the scaled magnitude
-        int r = (int) (255 * scaledMagnitude);
-        int g = (int) (255 * (1 - scaledMagnitude));
-        int b = (int) (255 * (1 - scaledMagnitude * scaledMagnitude * scaledMagnitude));
-
-        // Create the color using RGB components
-        return Color.rgb(r, g, b);
+        return normalizedSpectrogram;
     }
 
     private static int getGrayColorFromMagnitude(double magnitude) {
-        double maxMagnitude = 150;
-        double scaledMagnitude = magnitude / maxMagnitude;
+        // scale the magnitude up a bit, but cap it at 1.
+        double factor = 15;
+        double scaledMagnitude = magnitude * factor;
 
-        int grayValue = (int) (255 * scaledMagnitude);
+        scaledMagnitude = Math.min(1.0, scaledMagnitude);
 
-        return Color.rgb(grayValue, grayValue, grayValue);
-    }
+        int binaryValue = (int) (255 * (1 - scaledMagnitude));
 
-    private static int getMagmaColorFromMagnitude(double magnitude) {
-        double maxMagnitude = 100;
-        double scaledMagnitude = magnitude / maxMagnitude;
+        // Ensure the binaryValue is within the valid range of 0-255
+        binaryValue = Math.max(0, Math.min(255, binaryValue));
 
-        int r, g, b;
-
-        if (scaledMagnitude < 0.25) {
-            r = (int) (4 * scaledMagnitude * 255);
-            g = 0;
-            b = 0;
-        } else if (scaledMagnitude < 0.5) {
-            r = 255;
-            g = (int) ((4 * scaledMagnitude - 1) * 255);
-            b = 0;
-        } else if (scaledMagnitude < 0.75) {
-            r = (int) ((4 * scaledMagnitude - 2) * 255);
-            g = 255;
-            b = (int) ((4 * scaledMagnitude - 2) * 255);
-        } else {
-            r = (int) ((4 * scaledMagnitude - 3) * 255);
-            g = (int) ((4 * scaledMagnitude - 3) * 255);
-            b = 255;
-        }
-
-        return Color.rgb(r, g, b);
+        return Color.rgb(binaryValue, binaryValue, binaryValue);
     }
 
     private static int getPlasmaColorFromMagnitude(double magnitude) {
-        double maxMagnitude = 200;
-        double scaledMagnitude = magnitude / maxMagnitude;
+        // scale the magnitude up a bit, but cap it at 1.
+        double factor = 50;
+        double scaledMagnitude = magnitude * factor;
+
+//        scaledMagnitude = Math.min(1.0, scaledMagnitude);
 
         int color = Color.rgb(
                 (int) (scaledMagnitude * 255 * 0.082),
