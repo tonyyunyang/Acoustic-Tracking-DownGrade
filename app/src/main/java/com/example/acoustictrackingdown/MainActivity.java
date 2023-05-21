@@ -41,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageView spectrogramFull, spectrogramExtract, spectrogramSmallExtract;
     private static String FILE_NAME = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".pcm"; // File name with current date and time
     private static String FILE_NAME_2 = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_processed" + ".pcm"; // File name with current date and time
+    private static String FILE_NAME_3 = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_spectrogram" + ".png"; // File name with current date and time
     private static final int RECORDING_DURATION = 500; // in milliseconds
     private static final int SAMPLING_RATE_IN_HZ = 44100;
     private static final double START_FREQUENCY = 12000.0;
@@ -78,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
                 // renew the file name
                 FILE_NAME = generateFileName();
                 FILE_NAME_2 = generateFileName2();
+                FILE_NAME_3 = generateFileName3();
                 recordAudio(RECORDING_DURATION);
                 // determine the time of the signal output found via cross correlation
 //                TIME_SIGNAL_OUTPUT = findChirpSignal(CHIRP_SIGNAL, generateFilePath());
@@ -107,6 +109,16 @@ public class MainActivity extends AppCompatActivity {
                 Bitmap plot3 = plotSpectrogram3();
                 spectrogramSmallExtract.setImageBitmap(plot3);
 //                Toast.makeText(getApplicationContext(), "Spectrogram Generated", Toast.LENGTH_SHORT).show();
+
+                // Save the bitmap to a file
+                File file = new File(generateFilePath3());
+                try {
+                    FileOutputStream fos = new FileOutputStream(file);
+                    plot3.compress(Bitmap.CompressFormat.PNG, 100, fos); // Adjust the compression quality as needed
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 trackButton.setEnabled(true);
                 specButton.setEnabled(true);
             }
@@ -127,6 +139,16 @@ public class MainActivity extends AppCompatActivity {
 
     private String generateFilePath2() {
         return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + FILE_NAME_2;
+    }
+
+    private String generateFileName3() {
+        return new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_spectrogram" + ".png";
+    }
+
+    private String generateFilePath3() {
+        File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "Test");
+        storageDir.mkdirs(); // Create the "Test" folder if it doesn't exist
+        return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + "Test" + "/" + FILE_NAME_3;
     }
 
     private void recordAudio(int durationMs) {
