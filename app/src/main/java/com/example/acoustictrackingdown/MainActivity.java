@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int OVERLAP = 128;
     private static final int FFT_SIZE = WINDOW_SIZE;
 
-    private static final int SAMPLE_SIZE = 10;
+    private static final int SAMPLE_SIZE = 5;
 
 
 
