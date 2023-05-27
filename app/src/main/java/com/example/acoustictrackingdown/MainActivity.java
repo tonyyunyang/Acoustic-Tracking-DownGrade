@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int OVERLAP = 128;
     private static final int FFT_SIZE = WINDOW_SIZE;
 
-    private static final int SAMPLE_SIZE = 5;
+    private static final int SAMPLE_SIZE = 100;
 
 
 
@@ -1077,7 +1077,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static int getGray2ColorFromMagnitude(double magnitude) {
         // scale the magnitude up a bit, but cap it at 1.
-        double factor = 3;
+        double factor = 1.0;
         double scaledMagnitude = magnitude * factor;
 
         scaledMagnitude = Math.min(1.0, scaledMagnitude);
