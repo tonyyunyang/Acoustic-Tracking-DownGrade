@@ -33,12 +33,19 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import org.pytorch.IValue;
+import org.pytorch.LiteModuleLoader;
+import org.pytorch.Module;
+import org.pytorch.Tensor;
+import org.pytorch.torchvision.TensorImageUtils;
+
 public class MainActivity extends AppCompatActivity {
 
-    private Button specButton, trackButton, autoC1, autoC2, autoC3, autoC4;
+    private Button specButton, trackButton, autoC1, autoC2, autoC3, autoC4, testButton;
     private ImageView spectrogramFull, spectrogramExtract, spectrogramSmallExtract;
     private static String FILE_NAME = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".pcm"; // File name with current date and time
     private static String FILE_NAME_2 = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_processed" + ".pcm"; // File name with current date and time
@@ -60,7 +67,9 @@ public class MainActivity extends AppCompatActivity {
     private static final int OVERLAP = 128;
     private static final int FFT_SIZE = WINDOW_SIZE;
 
-    private static final int SAMPLE_SIZE = 5;
+    private static final int SAMPLE_SIZE = 20;
+
+    private ImageClassifier mImageClassifier;
 
 
 
@@ -74,9 +83,12 @@ public class MainActivity extends AppCompatActivity {
         autoC2 = (Button) findViewById(R.id.auto_c2_button);
         autoC3 = (Button) findViewById(R.id.auto_c3_button);
         autoC4 = (Button) findViewById(R.id.auto_c4_button);
+        testButton = (Button) findViewById(R.id.test);
         spectrogramFull = (ImageView) findViewById(R.id.Spectrogram_Full);
         spectrogramExtract = (ImageView) findViewById(R.id.extracted_spectrogram);
         spectrogramSmallExtract = (ImageView) findViewById(R.id.f_extracted_spectrogram);
+        mImageClassifier = new ImageClassifier(MainActivity.this, "aula_model.ptl");
+
 
         // set listener for the track button
         trackButton.setOnClickListener(new View.OnClickListener() {
@@ -400,6 +412,49 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 }, delay);
+            }
+        });
+
+        testButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                trackButton.setEnabled(false);
+                specButton.setEnabled(false);
+                autoC1.setEnabled(false);
+                autoC2.setEnabled(false);
+                autoC3.setEnabled(false);
+                autoC4.setEnabled(false);
+                testButton.setEnabled(false);
+
+                // Your existing code goes here
+                CHIRP_SIGNAL = generateChirpSignal();
+                CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
+                FILE_NAME = generateFileName();
+                recordAudio(RECORDING_DURATION);
+                INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
+                extractAudioSegmentIndex();
+                Bitmap plot = plotSpectrogram();
+                spectrogramFull.setImageBitmap(plot);
+                Bitmap plot2 = plotSpectrogram2();
+                spectrogramExtract.setImageBitmap(plot2);
+                Bitmap plot3 = plotSpectrogram3();
+                spectrogramSmallExtract.setImageBitmap(plot3);
+
+                Log.d("Channels: ", String.valueOf(plot3.getColor(0, 0)));
+
+                int predictedClassIndex = mImageClassifier.classifyImage(plot3);
+
+                // Return the predicted class
+                Toast.makeText(getApplicationContext(), "Class is: " + predictedClassIndex, Toast.LENGTH_SHORT).show();
+
+                // The loop has completed all iterations
+                trackButton.setEnabled(true);
+                specButton.setEnabled(true);
+                autoC1.setEnabled(true);
+                autoC2.setEnabled(true);
+                autoC3.setEnabled(true);
+                autoC4.setEnabled(true);
+                testButton.setEnabled(true);
             }
         });
     }
@@ -916,8 +971,7 @@ public class MainActivity extends AppCompatActivity {
         int newFrequencyBin = (int) Math.ceil((END_FREQUENCY - START_FREQUENCY) / ((SAMPLING_RATE_IN_HZ / 2.0) / frequencyBin));
         double[][] newSpectrogram = new double[newFrequencyBin][newFrameBin];
 
-        Log.d("The height of spectrogram is ", String.valueOf(newFrequencyBin));
-        Log.d("The width of spectrogram is ", String.valueOf(newFrameBin));
+
 
         int startRow = (int) Math.floor(START_FREQUENCY / ((SAMPLING_RATE_IN_HZ / 2.0) / frequencyBin));
         int endRow = (int) startRow + newFrequencyBin;
@@ -933,6 +987,10 @@ public class MainActivity extends AppCompatActivity {
         int targetHeight = newFrequencyBin * 8; // Example target height
 
         Bitmap spectrogramBitmap = plotExtractedSpectrogram(newSpectrogram, targetWidth, targetHeight);
+
+        Log.d("The height of spectrogram is ", String.valueOf(spectrogramBitmap.getWidth()));
+        Log.d("The width of spectrogram is ", String.valueOf(spectrogramBitmap.getHeight()));
+
         return spectrogramBitmap;
     }
 
