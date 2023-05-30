@@ -59,8 +59,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int WINDOW_SIZE = 256;
     private static final int OVERLAP = 128;
     private static final int FFT_SIZE = WINDOW_SIZE;
-
-    private static final int SAMPLE_SIZE = 100;
+    private static final int SAMPLE_SIZE = 150;
 
 
 
@@ -165,12 +164,11 @@ public class MainActivity extends AppCompatActivity {
                 autoC4.setEnabled(false);
 
                 // Define the delay between iterations (in milliseconds)
-                final int delay = 1000;
+                final int delay = 1500;
 
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     int iteration = 0;
-
                     @Override
                     public void run() {
                         // Inside this run() method, place the code you want to execute after the delay
@@ -228,7 +226,7 @@ public class MainActivity extends AppCompatActivity {
                 autoC4.setEnabled(false);
 
                 // Define the delay between iterations (in milliseconds)
-                final int delay = 1000;
+                final int delay = 1500;
 
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
@@ -290,7 +288,7 @@ public class MainActivity extends AppCompatActivity {
                 autoC4.setEnabled(false);
 
                 // Define the delay between iterations (in milliseconds)
-                final int delay = 1000;
+                final int delay = 1500;
 
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
@@ -352,7 +350,7 @@ public class MainActivity extends AppCompatActivity {
                 autoC4.setEnabled(false);
 
                 // Define the delay between iterations (in milliseconds)
-                final int delay = 1000;
+                final int delay = 1500;
 
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
