@@ -913,13 +913,13 @@ public class MainActivity extends AppCompatActivity {
 //            }
 //        }
         int newFrameBin = frameBin;
-        int newFrequencyBin = (int) Math.ceil((END_FREQUENCY - START_FREQUENCY) / ((SAMPLING_RATE_IN_HZ / 2.0) / frequencyBin));
+        int newFrequencyBin = (int) Math.ceil((END_FREQUENCY - START_FREQUENCY) / ((SAMPLING_RATE_IN_HZ / 2.0) / frequencyBin)) + 4;
         double[][] newSpectrogram = new double[newFrequencyBin][newFrameBin];
 
         Log.d("The height of spectrogram is ", String.valueOf(newFrequencyBin));
         Log.d("The width of spectrogram is ", String.valueOf(newFrameBin));
 
-        int startRow = (int) Math.floor(START_FREQUENCY / ((SAMPLING_RATE_IN_HZ / 2.0) / frequencyBin));
+        int startRow = (int) Math.floor(START_FREQUENCY / ((SAMPLING_RATE_IN_HZ / 2.0) / frequencyBin)) - 2;
         int endRow = (int) startRow + newFrequencyBin;
 
         for (int frame = 0; frame < newFrameBin; frame++) {
@@ -1077,7 +1077,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static int getGray2ColorFromMagnitude(double magnitude) {
         // scale the magnitude up a bit, but cap it at 1.
-        double factor = 1.0;
+        double factor = 2.4;
         double scaledMagnitude = magnitude * factor;
 
         scaledMagnitude = Math.min(1.0, scaledMagnitude);
