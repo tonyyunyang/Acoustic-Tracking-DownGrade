@@ -37,7 +37,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
-
     private Button specButton, trackButton, autoC1, autoC2, autoC3, autoC4;
     private ImageView spectrogramFull, spectrogramExtract, spectrogramSmallExtract;
     private static String FILE_NAME = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".pcm"; // File name with current date and time
@@ -60,8 +59,6 @@ public class MainActivity extends AppCompatActivity {
     private static final int OVERLAP = 128;
     private static final int FFT_SIZE = WINDOW_SIZE;
     private static final int SAMPLE_SIZE = 200;
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
