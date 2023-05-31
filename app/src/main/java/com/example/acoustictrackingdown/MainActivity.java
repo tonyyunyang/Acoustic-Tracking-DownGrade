@@ -1164,7 +1164,6 @@ public class MainActivity extends AppCompatActivity {
 
         // Ensure the binaryValue is within the valid range of 0-255
         binaryValue = Math.max(0, Math.min(255, binaryValue));
-
         return Color.rgb(binaryValue, binaryValue, binaryValue);
     }
 
@@ -1180,7 +1179,6 @@ public class MainActivity extends AppCompatActivity {
                 (int) (scaledMagnitude * 255 * 0.285),
                 (int) (scaledMagnitude * 255 * 0.564)
         );
-
         return color;
     }
 
