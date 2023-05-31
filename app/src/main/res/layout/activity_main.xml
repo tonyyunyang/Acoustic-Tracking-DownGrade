@@ -7,36 +7,6 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/auto_c4_button"
-        android:layout_width="123dp"
-        android:layout_height="85dp"
-        android:layout_marginEnd="27dp"
-        android:layout_marginBottom="114dp"
-        android:text="Auto C4"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <Button
-        android:id="@+id/auto_c3_button"
-        android:layout_width="123dp"
-        android:layout_height="85dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginBottom="114dp"
-        android:text="Auto C3"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <Button
-        android:id="@+id/auto_c2_button"
-        android:layout_width="122dp"
-        android:layout_height="86dp"
-        android:layout_marginEnd="27dp"
-        android:layout_marginBottom="221dp"
-        android:text="Auto C2"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <Button
         android:id="@+id/acoustic_button"
         android:layout_width="139dp"
         android:layout_height="51dp"
@@ -92,13 +62,23 @@
         app:layout_constraintStart_toStartOf="parent"
         tools:srcCompat="@tools:sample/avatars" />
 
+    <Spinner
+        android:id="@+id/cell_selector"
+        android:layout_width="355dp"
+        android:layout_height="61dp"
+        android:layout_marginStart="28dp"
+        android:layout_marginBottom="249dp"
+        android:dropDownWidth="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
     <Button
-        android:id="@+id/auto_c1_button"
-        android:layout_width="123dp"
-        android:layout_height="85dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginBottom="221dp"
-        android:text="Auto C1"
+        android:id="@+id/gatherData"
+        android:layout_width="168dp"
+        android:layout_height="112dp"
+        android:layout_marginStart="121dp"
+        android:layout_marginBottom="85dp"
+        android:text="Gather cell ____ data"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 

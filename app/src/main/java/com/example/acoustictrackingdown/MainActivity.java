@@ -19,8 +19,11 @@ import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import org.apache.commons.math3.complex.Complex;
@@ -34,18 +37,18 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
-    private Button specButton, trackButton, autoC1, autoC2, autoC3, autoC4;
+    private Button specButton, trackButton, gatherDataButton;
+    private Spinner cellSelect;
     private ImageView spectrogramFull, spectrogramExtract, spectrogramSmallExtract;
+    private static String cell = "Not_defined_yet";
     private static String FILE_NAME = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".pcm"; // File name with current date and time
     private static String FILE_NAME_2 = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_processed" + ".pcm"; // File name with current date and time
     private static String FILE_NAME_3 = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_test" + ".png"; // File name with current date and time
-    private static String FILE_NAME_C1 = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_C1" + ".png"; // File name with current date and time
-    private static String FILE_NAME_C2 = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_C2" + ".png"; // File name with current date and time
-    private static String FILE_NAME_C3 = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_C3" + ".png"; // File name with current date and time
-    private static String FILE_NAME_C4 = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_C4" + ".png"; // File name with current date and time
+    private static String FILE_NAME_CELL = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_not_yet_defined" + ".png"; // File name with current date and time
     private static final int RECORDING_DURATION = 500; // in milliseconds
     private static final int SAMPLING_RATE_IN_HZ = 44100;
     private static final double START_FREQUENCY = 12000.0;
@@ -65,13 +68,19 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         specButton = (Button) findViewById(R.id.full_spectrogram_button);
         trackButton = (Button) findViewById(R.id.acoustic_button);
-        autoC1 = (Button) findViewById(R.id.auto_c1_button);
-        autoC2 = (Button) findViewById(R.id.auto_c2_button);
-        autoC3 = (Button) findViewById(R.id.auto_c3_button);
-        autoC4 = (Button) findViewById(R.id.auto_c4_button);
+        gatherDataButton = (Button) findViewById(R.id.gatherData);
         spectrogramFull = (ImageView) findViewById(R.id.Spectrogram_Full);
         spectrogramExtract = (ImageView) findViewById(R.id.extracted_spectrogram);
         spectrogramSmallExtract = (ImageView) findViewById(R.id.f_extracted_spectrogram);
+
+        cellSelect = (Spinner) findViewById(R.id.cell_selector);
+        ArrayList<String> items = new ArrayList<>();
+        for (int i = 1; i <= 16; i++) {
+            String item = "C" + i;
+            items.add(item);
+        }
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, items);
+        cellSelect.setAdapter(adapter);
 
         // set listener for the track button
         trackButton.setOnClickListener(new View.OnClickListener() {
@@ -79,10 +88,8 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 trackButton.setEnabled(false);
                 specButton.setEnabled(false);
-                autoC1.setEnabled(false);
-                autoC2.setEnabled(false);
-                autoC3.setEnabled(false);
-                autoC4.setEnabled(false);
+                gatherDataButton.setEnabled(false);
+                cellSelect.setEnabled(false);
                 // initialize the chirp signal and audio
                 CHIRP_SIGNAL = generateChirpSignal();
                 CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
@@ -104,12 +111,10 @@ public class MainActivity extends AppCompatActivity {
 //                extractAudioSegment();
                 extractAudioSegmentIndex();
 //                Toast.makeText(getApplicationContext(), "Acoustic Tracking Done", Toast.LENGTH_SHORT).show();
+                gatherDataButton.setEnabled(true);
+                cellSelect.setEnabled(true);
                 trackButton.setEnabled(true);
                 specButton.setEnabled(true);
-                autoC1.setEnabled(true);
-                autoC2.setEnabled(true);
-                autoC3.setEnabled(true);
-                autoC4.setEnabled(true);
             }
         });
 
@@ -119,10 +124,8 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 trackButton.setEnabled(false);
                 specButton.setEnabled(false);
-                autoC1.setEnabled(false);
-                autoC2.setEnabled(false);
-                autoC3.setEnabled(false);
-                autoC4.setEnabled(false);
+                gatherDataButton.setEnabled(false);
+                cellSelect.setEnabled(false);
                 Bitmap plot = plotSpectrogram();
                 spectrogramFull.setImageBitmap(plot);
                 Bitmap plot2 = plotSpectrogram2();
@@ -141,87 +144,36 @@ public class MainActivity extends AppCompatActivity {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                gatherDataButton.setEnabled(true);
+                cellSelect.setEnabled(true);
                 trackButton.setEnabled(true);
                 specButton.setEnabled(true);
-                autoC1.setEnabled(true);
-                autoC2.setEnabled(true);
-                autoC3.setEnabled(true);
-                autoC4.setEnabled(true);
             }
         });
 
-        autoC1.setOnClickListener(new View.OnClickListener() {
+        cellSelect.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String selectedItem = (String) parent.getItemAtPosition(position);
+                cell = selectedItem;
+                // Do something with the selected item
+                String finalText = (String) "Gather cell " + cell +" data";
+                gatherDataButton.setText(finalText); // Change the text of the button to the selected item
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // Do nothing when no item is selected
+            }
+        });
+
+        gatherDataButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 trackButton.setEnabled(false);
                 specButton.setEnabled(false);
-                autoC1.setEnabled(false);
-                autoC2.setEnabled(false);
-                autoC3.setEnabled(false);
-                autoC4.setEnabled(false);
-
-                // Define the delay between iterations (in milliseconds)
-                final int delay = 1500;
-
-                final Handler handler = new Handler();
-                handler.postDelayed(new Runnable() {
-                    int iteration = 0;
-                    @Override
-                    public void run() {
-                        // Inside this run() method, place the code you want to execute after the delay
-
-                        if (iteration < SAMPLE_SIZE) {
-                            // Your existing code goes here
-                            CHIRP_SIGNAL = generateChirpSignal();
-                            CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
-                            FILE_NAME = generateFileName();
-                            FILE_NAME_2 = generateFileName2();
-                            FILE_NAME_C1 = generateFileNameC1();
-                            recordAudio(RECORDING_DURATION);
-                            INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
-                            extractAudioSegmentIndex();
-                            Bitmap plot = plotSpectrogram();
-                            spectrogramFull.setImageBitmap(plot);
-                            Bitmap plot2 = plotSpectrogram2();
-                            spectrogramExtract.setImageBitmap(plot2);
-                            Bitmap plot3 = plotSpectrogram3();
-                            spectrogramSmallExtract.setImageBitmap(plot3);
-                            Bitmap plotSave = plotSpectrogramSave();
-                            File file = new File(generateFilePathC1());
-                            try {
-                                FileOutputStream fos = new FileOutputStream(file);
-                                plotSave.compress(Bitmap.CompressFormat.PNG, 100, fos);
-                                fos.close();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-
-                            iteration++;
-                            handler.postDelayed(this, delay); // Schedule the next iteration after the delay
-                        } else {
-                            // The loop has completed all iterations
-                            trackButton.setEnabled(true);
-                            specButton.setEnabled(true);
-                            autoC1.setEnabled(true);
-                            autoC2.setEnabled(true);
-                            autoC3.setEnabled(true);
-                            autoC4.setEnabled(true);
-                        }
-                    }
-                }, delay);
-            }
-        });
-
-
-        autoC2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                trackButton.setEnabled(false);
-                specButton.setEnabled(false);
-                autoC1.setEnabled(false);
-                autoC2.setEnabled(false);
-                autoC3.setEnabled(false);
-                autoC4.setEnabled(false);
+                gatherDataButton.setEnabled(false);
+                cellSelect.setEnabled(false);
 
                 // Define the delay between iterations (in milliseconds)
                 final int delay = 1500;
@@ -240,7 +192,7 @@ public class MainActivity extends AppCompatActivity {
                             CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
                             FILE_NAME = generateFileName();
                             FILE_NAME_2 = generateFileName2();
-                            FILE_NAME_C2 = generateFileNameC2();
+                            FILE_NAME_CELL = generateFileNameCell();
                             recordAudio(RECORDING_DURATION);
                             INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
                             extractAudioSegmentIndex();
@@ -251,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
                             Bitmap plot3 = plotSpectrogram3();
                             spectrogramSmallExtract.setImageBitmap(plot3);
                             Bitmap plotSave = plotSpectrogramSave();
-                            File file = new File(generateFilePathC2());
+                            File file = new File(generateFilePathCell());
                             try {
                                 FileOutputStream fos = new FileOutputStream(file);
                                 plotSave.compress(Bitmap.CompressFormat.PNG, 100, fos);
@@ -266,136 +218,8 @@ public class MainActivity extends AppCompatActivity {
                             // The loop has completed all iterations
                             trackButton.setEnabled(true);
                             specButton.setEnabled(true);
-                            autoC1.setEnabled(true);
-                            autoC2.setEnabled(true);
-                            autoC3.setEnabled(true);
-                            autoC4.setEnabled(true);
-                        }
-                    }
-                }, delay);
-            }
-        });
-
-        autoC3.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                trackButton.setEnabled(false);
-                specButton.setEnabled(false);
-                autoC1.setEnabled(false);
-                autoC2.setEnabled(false);
-                autoC3.setEnabled(false);
-                autoC4.setEnabled(false);
-
-                // Define the delay between iterations (in milliseconds)
-                final int delay = 1500;
-
-                final Handler handler = new Handler();
-                handler.postDelayed(new Runnable() {
-                    int iteration = 0;
-
-                    @Override
-                    public void run() {
-                        // Inside this run() method, place the code you want to execute after the delay
-
-                        if (iteration < SAMPLE_SIZE) {
-                            // Your existing code goes here
-                            CHIRP_SIGNAL = generateChirpSignal();
-                            CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
-                            FILE_NAME = generateFileName();
-                            FILE_NAME_2 = generateFileName2();
-                            FILE_NAME_C3 = generateFileNameC3();
-                            recordAudio(RECORDING_DURATION);
-                            INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
-                            extractAudioSegmentIndex();
-                            Bitmap plot = plotSpectrogram();
-                            spectrogramFull.setImageBitmap(plot);
-                            Bitmap plot2 = plotSpectrogram2();
-                            spectrogramExtract.setImageBitmap(plot2);
-                            Bitmap plot3 = plotSpectrogram3();
-                            spectrogramSmallExtract.setImageBitmap(plot3);
-                            Bitmap plotSave = plotSpectrogramSave();
-                            File file = new File(generateFilePathC3());
-                            try {
-                                FileOutputStream fos = new FileOutputStream(file);
-                                plotSave.compress(Bitmap.CompressFormat.PNG, 100, fos);
-                                fos.close();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-
-                            iteration++;
-                            handler.postDelayed(this, delay); // Schedule the next iteration after the delay
-                        } else {
-                            // The loop has completed all iterations
-                            trackButton.setEnabled(true);
-                            specButton.setEnabled(true);
-                            autoC1.setEnabled(true);
-                            autoC2.setEnabled(true);
-                            autoC3.setEnabled(true);
-                            autoC4.setEnabled(true);
-                        }
-                    }
-                }, delay);
-            }
-        });
-
-        autoC4.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                trackButton.setEnabled(false);
-                specButton.setEnabled(false);
-                autoC1.setEnabled(false);
-                autoC2.setEnabled(false);
-                autoC3.setEnabled(false);
-                autoC4.setEnabled(false);
-
-                // Define the delay between iterations (in milliseconds)
-                final int delay = 1500;
-
-                final Handler handler = new Handler();
-                handler.postDelayed(new Runnable() {
-                    int iteration = 0;
-
-                    @Override
-                    public void run() {
-                        // Inside this run() method, place the code you want to execute after the delay
-
-                        if (iteration < SAMPLE_SIZE) {
-                            // Your existing code goes here
-                            CHIRP_SIGNAL = generateChirpSignal();
-                            CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
-                            FILE_NAME = generateFileName();
-                            FILE_NAME_2 = generateFileName2();
-                            FILE_NAME_C4 = generateFileNameC4();
-                            recordAudio(RECORDING_DURATION);
-                            INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
-                            extractAudioSegmentIndex();
-                            Bitmap plot = plotSpectrogram();
-                            spectrogramFull.setImageBitmap(plot);
-                            Bitmap plot2 = plotSpectrogram2();
-                            spectrogramExtract.setImageBitmap(plot2);
-                            Bitmap plot3 = plotSpectrogram3();
-                            spectrogramSmallExtract.setImageBitmap(plot3);
-                            Bitmap plotSave = plotSpectrogramSave();
-                            File file = new File(generateFilePathC4());
-                            try {
-                                FileOutputStream fos = new FileOutputStream(file);
-                                plotSave.compress(Bitmap.CompressFormat.PNG, 100, fos);
-                                fos.close();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-
-                            iteration++;
-                            handler.postDelayed(this, delay); // Schedule the next iteration after the delay
-                        } else {
-                            // The loop has completed all iterations
-                            trackButton.setEnabled(true);
-                            specButton.setEnabled(true);
-                            autoC1.setEnabled(true);
-                            autoC2.setEnabled(true);
-                            autoC3.setEnabled(true);
-                            autoC4.setEnabled(true);
+                            gatherDataButton.setEnabled(true);
+                            cellSelect.setEnabled(true);
                         }
                     }
                 }, delay);
@@ -429,44 +253,14 @@ public class MainActivity extends AppCompatActivity {
         return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + "Test" + "/" + FILE_NAME_3;
     }
 
-    private String generateFileNameC1() {
-        return new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_C1" + ".png";
+    private String generateFileNameCell() {
+        return new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_" + cell + ".png";
     }
 
-    private String generateFilePathC1() {
-        File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "C1");
+    private String generateFilePathCell() {
+        File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), cell);
         storageDir.mkdirs(); // Create the "Test" folder if it doesn't exist
-        return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + "C1" + "/" + FILE_NAME_C1;
-    }
-
-    private String generateFileNameC2() {
-        return new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_C2" + ".png";
-    }
-
-    private String generateFilePathC2() {
-        File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "C2");
-        storageDir.mkdirs(); // Create the "Test" folder if it doesn't exist
-        return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + "C2" + "/" + FILE_NAME_C2;
-    }
-
-    private String generateFileNameC3() {
-        return new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_C3" + ".png";
-    }
-
-    private String generateFilePathC3() {
-        File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "C3");
-        storageDir.mkdirs(); // Create the "Test" folder if it doesn't exist
-        return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + "C3" + "/" + FILE_NAME_C3;
-    }
-
-    private String generateFileNameC4() {
-        return new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_C4" + ".png";
-    }
-
-    private String generateFilePathC4() {
-        File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "C4");
-        storageDir.mkdirs(); // Create the "Test" folder if it doesn't exist
-        return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + "C4" + "/" + FILE_NAME_C4;
+        return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + cell + "/" + FILE_NAME_CELL;
     }
 
     private void recordAudio(int durationMs) {
