@@ -66,10 +66,10 @@ public class MainActivity extends AppCompatActivity {
     private static final int WINDOW_SIZE = 256;
     private static final int OVERLAP = 128;
     private static final int FFT_SIZE = WINDOW_SIZE;
-
     private static final int SAMPLE_SIZE = 20;
 
     private ImageClassifier mImageClassifier;
+
 
 
 
@@ -177,12 +177,11 @@ public class MainActivity extends AppCompatActivity {
                 autoC4.setEnabled(false);
 
                 // Define the delay between iterations (in milliseconds)
-                final int delay = 1000;
+                final int delay = 1500;
 
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
                     int iteration = 0;
-
                     @Override
                     public void run() {
                         // Inside this run() method, place the code you want to execute after the delay
@@ -240,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
                 autoC4.setEnabled(false);
 
                 // Define the delay between iterations (in milliseconds)
-                final int delay = 1000;
+                final int delay = 1500;
 
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
@@ -302,7 +301,7 @@ public class MainActivity extends AppCompatActivity {
                 autoC4.setEnabled(false);
 
                 // Define the delay between iterations (in milliseconds)
-                final int delay = 1000;
+                final int delay = 1500;
 
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
@@ -364,7 +363,7 @@ public class MainActivity extends AppCompatActivity {
                 autoC4.setEnabled(false);
 
                 // Define the delay between iterations (in milliseconds)
-                final int delay = 1000;
+                final int delay = 1500;
 
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
@@ -968,12 +967,12 @@ public class MainActivity extends AppCompatActivity {
 //            }
 //        }
         int newFrameBin = frameBin;
-        int newFrequencyBin = (int) Math.ceil((END_FREQUENCY - START_FREQUENCY) / ((SAMPLING_RATE_IN_HZ / 2.0) / frequencyBin));
+        int newFrequencyBin = (int) Math.ceil((END_FREQUENCY - START_FREQUENCY) / ((SAMPLING_RATE_IN_HZ / 2.0) / frequencyBin)) + 4;
         double[][] newSpectrogram = new double[newFrequencyBin][newFrameBin];
 
 
 
-        int startRow = (int) Math.floor(START_FREQUENCY / ((SAMPLING_RATE_IN_HZ / 2.0) / frequencyBin));
+        int startRow = (int) Math.floor(START_FREQUENCY / ((SAMPLING_RATE_IN_HZ / 2.0) / frequencyBin)) - 2;
         int endRow = (int) startRow + newFrequencyBin;
 
         for (int frame = 0; frame < newFrameBin; frame++) {
