@@ -59,8 +59,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int WINDOW_SIZE = 256;
     private static final int OVERLAP = 128;
     private static final int FFT_SIZE = WINDOW_SIZE;
-    private static final int SAMPLE_SIZE = 150;
-
+    private static final int SAMPLE_SIZE = 200;
 
 
     @Override
@@ -133,13 +132,14 @@ public class MainActivity extends AppCompatActivity {
                 spectrogramExtract.setImageBitmap(plot2);
                 Bitmap plot3 = plotSpectrogram3();
                 spectrogramSmallExtract.setImageBitmap(plot3);
+                Bitmap plotSave = plotSpectrogramSave();
 //                Toast.makeText(getApplicationContext(), "Spectrogram Generated", Toast.LENGTH_SHORT).show();
 
                 // Save the bitmap to a file
                 File file = new File(generateFilePathTest());
                 try {
                     FileOutputStream fos = new FileOutputStream(file);
-                    plot3.compress(Bitmap.CompressFormat.PNG, 100, fos); // Adjust the compression quality as needed
+                    plotSave.compress(Bitmap.CompressFormat.PNG, 100, fos); // Adjust the compression quality as needed
                     fos.close();
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -189,10 +189,11 @@ public class MainActivity extends AppCompatActivity {
                             spectrogramExtract.setImageBitmap(plot2);
                             Bitmap plot3 = plotSpectrogram3();
                             spectrogramSmallExtract.setImageBitmap(plot3);
+                            Bitmap plotSave = plotSpectrogramSave();
                             File file = new File(generateFilePathC1());
                             try {
                                 FileOutputStream fos = new FileOutputStream(file);
-                                plot3.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                                plotSave.compress(Bitmap.CompressFormat.PNG, 100, fos);
                                 fos.close();
                             } catch (IOException e) {
                                 e.printStackTrace();
@@ -252,10 +253,11 @@ public class MainActivity extends AppCompatActivity {
                             spectrogramExtract.setImageBitmap(plot2);
                             Bitmap plot3 = plotSpectrogram3();
                             spectrogramSmallExtract.setImageBitmap(plot3);
+                            Bitmap plotSave = plotSpectrogramSave();
                             File file = new File(generateFilePathC2());
                             try {
                                 FileOutputStream fos = new FileOutputStream(file);
-                                plot3.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                                plotSave.compress(Bitmap.CompressFormat.PNG, 100, fos);
                                 fos.close();
                             } catch (IOException e) {
                                 e.printStackTrace();
@@ -314,10 +316,11 @@ public class MainActivity extends AppCompatActivity {
                             spectrogramExtract.setImageBitmap(plot2);
                             Bitmap plot3 = plotSpectrogram3();
                             spectrogramSmallExtract.setImageBitmap(plot3);
+                            Bitmap plotSave = plotSpectrogramSave();
                             File file = new File(generateFilePathC3());
                             try {
                                 FileOutputStream fos = new FileOutputStream(file);
-                                plot3.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                                plotSave.compress(Bitmap.CompressFormat.PNG, 100, fos);
                                 fos.close();
                             } catch (IOException e) {
                                 e.printStackTrace();
@@ -376,10 +379,11 @@ public class MainActivity extends AppCompatActivity {
                             spectrogramExtract.setImageBitmap(plot2);
                             Bitmap plot3 = plotSpectrogram3();
                             spectrogramSmallExtract.setImageBitmap(plot3);
+                            Bitmap plotSave = plotSpectrogramSave();
                             File file = new File(generateFilePathC4());
                             try {
                                 FileOutputStream fos = new FileOutputStream(file);
-                                plot3.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                                plotSave.compress(Bitmap.CompressFormat.PNG, 100, fos);
                                 fos.close();
                             } catch (IOException e) {
                                 e.printStackTrace();
@@ -929,6 +933,85 @@ public class MainActivity extends AppCompatActivity {
         // plot the bitmap
         int targetWidth = newFrameBin * 8; // Example target width
         int targetHeight = newFrequencyBin * 8; // Example target height
+
+        Bitmap spectrogramBitmap = plotExtractedSpectrogram(newSpectrogram, targetWidth, targetHeight);
+        return spectrogramBitmap;
+    }
+
+    private Bitmap plotSpectrogramSave() {
+        // Read the .pcm audio file into a byte array
+        byte[] audioData = null;
+        try {
+            File audioFile = new File(generateFilePath2());
+            audioData = new byte[(int) audioFile.length()];
+            FileInputStream inputStream = new FileInputStream(audioFile);
+            inputStream.read(audioData);
+            inputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (audioData == null) {
+            // Error reading the audio file
+            Toast.makeText(getApplicationContext(), "Audio file empty", Toast.LENGTH_SHORT).show();
+            return null;
+        }
+
+        int numSmaples = audioData.length / 2;
+        double[] audioSamplesDouble = new double[numSmaples];
+
+        for (int i = 0; i < numSmaples; i++) {
+            audioSamplesDouble[i] = (audioData[2 * i + 1] << 8) | (audioData[2 * i] & 0xff);
+        }
+
+        Log.d("The audio length ", String.valueOf(audioSamplesDouble.length));
+
+        // STFT, determine the size of the 2D array spectrogram first
+        int frameBin = (int) Math.floor((double) (audioSamplesDouble.length - WINDOW_SIZE) / OVERLAP) + 1;
+        int frequencyBin = (int) Math.floor((double) FFT_SIZE / 2) + 1;
+        double[][] spectrogram = new double[frequencyBin][frameBin];
+
+        // Perform STFT and populate the spectrogram array
+        // Iterate over frames
+        for (int frame = 0; frame < frameBin; frame++) {
+            // Apply window function to the frame
+            double[] windowedFrame = applyWindow(audioSamplesDouble, frame * OVERLAP, WINDOW_SIZE);
+
+            // Compute FFT on the windowed frame
+            Complex[] fftResult = computeFFT(windowedFrame, FFT_SIZE);
+
+            // Populate the spectrogram array with the magnitude of FFT bins
+            for (int frequency = 0; frequency < frequencyBin; frequency++) {
+                spectrogram[frequency][frame] = computeMagnitude(fftResult[frequency]);
+            }
+        }
+
+//        Log.d("The height of spectrogram is ", String.valueOf(frequencyBin));
+//        Log.d("The width of spectrogram is ", String.valueOf(frameBin));
+//
+//        for (int i = 0; i < frameBin; i++) {
+//            for (int j = 0; j < frequencyBin; j++) {
+//                Log.d("", String.valueOf(spectrogram[j][i]));
+//            }
+//        }
+        int newFrameBin = frameBin;
+        int newFrequencyBin = (int) Math.ceil((END_FREQUENCY - START_FREQUENCY) / ((SAMPLING_RATE_IN_HZ / 2.0) / frequencyBin)) + 4;
+        double[][] newSpectrogram = new double[newFrequencyBin][newFrameBin];
+
+        Log.d("The height of spectrogram is ", String.valueOf(newFrequencyBin));
+        Log.d("The width of spectrogram is ", String.valueOf(newFrameBin));
+
+        int startRow = (int) Math.floor(START_FREQUENCY / ((SAMPLING_RATE_IN_HZ / 2.0) / frequencyBin)) - 2;
+        int endRow = (int) startRow + newFrequencyBin;
+
+        for (int frame = 0; frame < newFrameBin; frame++) {
+            for (int frequency = startRow; frequency < endRow; frequency++) {
+                newSpectrogram[frequency - startRow][frame] = spectrogram[frequency][frame];
+            }
+        }
+
+        // plot the bitmap
+        int targetWidth = newFrameBin * 2; // Example target width
+        int targetHeight = newFrequencyBin * 2; // Example target height
 
         Bitmap spectrogramBitmap = plotExtractedSpectrogram(newSpectrogram, targetWidth, targetHeight);
         return spectrogramBitmap;
