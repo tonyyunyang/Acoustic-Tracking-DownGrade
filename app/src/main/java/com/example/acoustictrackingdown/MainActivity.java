@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
         spectrogramFull = (ImageView) findViewById(R.id.Spectrogram_Full);
         spectrogramExtract = (ImageView) findViewById(R.id.extracted_spectrogram);
         spectrogramSmallExtract = (ImageView) findViewById(R.id.f_extracted_spectrogram);
-        mImageClassifier = new ImageClassifier(MainActivity.this, "aula_model.ptl");
+        mImageClassifier = new ImageClassifier(MainActivity.this, "model.ptl");
 
 
         // set listener for the track button
@@ -440,7 +440,7 @@ public class MainActivity extends AppCompatActivity {
                 Bitmap plot3 = plotSpectrogram3();
                 spectrogramSmallExtract.setImageBitmap(plot3);
 
-                Log.d("Channels: ", String.valueOf(plot3.getColor(0, 0)));
+//                Log.d("Channels: ", String.valueOf(plot3.getColor(0, 0)));
 
                 int predictedClassIndex = mImageClassifier.classifyImage(plot3);
 
@@ -983,8 +983,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // plot the bitmap
-        int targetWidth = newFrameBin * 8; // Example target width
-        int targetHeight = newFrequencyBin * 8; // Example target height
+        int targetWidth = newFrameBin * 2; // Example target width
+        int targetHeight = newFrequencyBin * 2; // Example target height
 
         Bitmap spectrogramBitmap = plotExtractedSpectrogram(newSpectrogram, targetWidth, targetHeight);
 
@@ -1135,7 +1135,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static int getGray2ColorFromMagnitude(double magnitude) {
         // scale the magnitude up a bit, but cap it at 1.
-        double factor = 3;
+        double factor = 2.4 ;
         double scaledMagnitude = magnitude * factor;
 
         scaledMagnitude = Math.min(1.0, scaledMagnitude);
