@@ -34,6 +34,7 @@ import org.apache.commons.math3.transform.TransformType;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
@@ -49,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
     private static String FILE_NAME_2 = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_processed" + ".pcm"; // File name with current date and time
     private static String FILE_NAME_3 = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_test" + ".png"; // File name with current date and time
     private static String FILE_NAME_CELL = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_not_yet_defined" + ".png"; // File name with current date and time
+    private static String FILE_NAME_CELL2 = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_not_yet_defined" + ".csv";
     private static final int RECORDING_DURATION = 500; // in milliseconds
     private static final int SAMPLING_RATE_IN_HZ = 44100;
     private static final double START_FREQUENCY = 12000.0;
@@ -61,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int WINDOW_SIZE = 256;
     private static final int OVERLAP = 128;
     private static final int FFT_SIZE = WINDOW_SIZE;
-    private static final int SAMPLE_SIZE = 200;
+    private static final int SAMPLE_SIZE = 5;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -193,6 +195,7 @@ public class MainActivity extends AppCompatActivity {
                             FILE_NAME = generateFileName();
                             FILE_NAME_2 = generateFileName2();
                             FILE_NAME_CELL = generateFileNameCell();
+                            FILE_NAME_CELL2 = generateFileNameCell2();
                             recordAudio(RECORDING_DURATION);
                             INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
                             extractAudioSegmentIndex();
@@ -257,10 +260,20 @@ public class MainActivity extends AppCompatActivity {
         return new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_" + cell + ".png";
     }
 
+    private String generateFileNameCell2() {
+        return cell + ".csv";
+    }
+
     private String generateFilePathCell() {
         File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), cell);
         storageDir.mkdirs(); // Create the "Test" folder if it doesn't exist
         return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + cell + "/" + FILE_NAME_CELL;
+    }
+
+    private String generateFilePathCell2() {
+        File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "CSVs");
+        storageDir.mkdirs(); // Create the "Test" folder if it doesn't exist
+        return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + "CSVs" + "/" + FILE_NAME_CELL2;
     }
 
     private void recordAudio(int durationMs) {
@@ -799,6 +812,7 @@ public class MainActivity extends AppCompatActivity {
                 newSpectrogram[frequency - startRow][frame] = spectrogram[frequency][frame];
             }
         }
+        computeAndSaveSpectralContrast(newSpectrogram);
 
         // plot the bitmap
         int targetWidth = newFrameBin * 2; // Example target width
@@ -806,6 +820,74 @@ public class MainActivity extends AppCompatActivity {
 
         Bitmap spectrogramBitmap = plotExtractedSpectrogram(newSpectrogram, targetWidth, targetHeight);
         return spectrogramBitmap;
+    }
+
+    private void computeAndSaveSpectralContrast(double[][] newSpectrogram) {
+        // Determine the number of frequency bins and frames
+        int frequencyBin = newSpectrogram.length;
+        int frameBin = newSpectrogram[0].length;
+
+        // Initialize an array to store the spectral contrast values
+        double[] spectralContrast = new double[frameBin];
+
+        // Iterate over frames
+        for (int frame = 0; frame < frameBin; frame++) {
+
+            // Initialize peak and valley
+            double peak = Double.MIN_VALUE;
+            double valley = Double.MAX_VALUE;
+
+            // Iterate over frequencies
+            for (int frequency = 0; frequency < frequencyBin; frequency++) {
+
+                // Update peak and valley
+                peak = Math.max(peak, newSpectrogram[frequency][frame]);
+                valley = Math.min(valley, newSpectrogram[frequency][frame]);
+            }
+
+            // Calculate spectral contrast for this frame
+            spectralContrast[frame] = peak - valley;
+        }
+
+        // Now, write the spectralContrast array to a CSV file
+
+        try {
+            // Create a File object
+            File file = new File(generateFilePathCell2());
+
+            // Create the file if it does not exist
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+
+            // Create a FileWriter in append mode
+            FileWriter writer = new FileWriter(file, true);
+
+            // Create a StringBuilder to hold the CSV data
+            StringBuilder sb = new StringBuilder();
+
+            // Append the spectral contrast values to the StringBuilder
+            for (int i = 0; i < spectralContrast.length; i++) {
+                sb.append(spectralContrast[i]);
+
+                // If not the last element, append a comma
+                if (i != spectralContrast.length - 1) {
+                    sb.append(",");
+                }
+            }
+
+            // Append a newline to end this line of the CSV
+            sb.append("\n");
+
+            // Write the StringBuilder's content to the file
+            writer.write(sb.toString());
+
+            // Close the FileWriter
+            writer.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private static double[] applyWindow(double[] frame, int startIndex, int windowSize) {

@@ -8,9 +8,9 @@
 
     <Button
         android:id="@+id/acoustic_button"
-        android:layout_width="139dp"
-        android:layout_height="51dp"
-        android:layout_marginStart="136dp"
+        android:layout_width="178dp"
+        android:layout_height="50dp"
+        android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
         android:text="Omit Chirp"
         app:layout_constraintStart_toStartOf="parent"
@@ -18,10 +18,10 @@
 
     <Button
         android:id="@+id/full_spectrogram_button"
-        android:layout_width="214dp"
-        android:layout_height="50dp"
-        android:layout_marginStart="96dp"
-        android:layout_marginTop="76dp"
+        android:layout_width="161dp"
+        android:layout_height="52dp"
+        android:layout_marginStart="216dp"
+        android:layout_marginTop="16dp"
         android:text="Full Spectrogram"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -31,7 +31,7 @@
         android:layout_width="134dp"
         android:layout_height="138dp"
         android:layout_marginStart="36dp"
-        android:layout_marginTop="140dp"
+        android:layout_marginTop="84dp"
         android:layout_marginEnd="40dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
@@ -41,12 +41,12 @@
 
     <ImageView
         android:id="@+id/extracted_spectrogram"
-        android:layout_width="134dp"
+        android:layout_width="135dp"
         android:layout_height="139dp"
-        android:layout_marginBottom="452dp"
+        android:layout_marginBottom="508dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.902"
+        app:layout_constraintHorizontal_bias="0.793"
         app:layout_constraintStart_toStartOf="parent"
         tools:srcCompat="@tools:sample/avatars" />
 
@@ -56,9 +56,10 @@
         android:layout_height="108dp"
         android:layout_marginStart="85dp"
         android:layout_marginEnd="85dp"
-        android:layout_marginBottom="332dp"
+        android:layout_marginBottom="392dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.833"
         app:layout_constraintStart_toStartOf="parent"
         tools:srcCompat="@tools:sample/avatars" />
 
@@ -67,17 +68,17 @@
         android:layout_width="355dp"
         android:layout_height="61dp"
         android:layout_marginStart="28dp"
-        android:layout_marginBottom="249dp"
+        android:layout_marginBottom="324dp"
         android:dropDownWidth="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
     <Button
         android:id="@+id/gatherData"
-        android:layout_width="168dp"
-        android:layout_height="112dp"
-        android:layout_marginStart="121dp"
-        android:layout_marginBottom="85dp"
+        android:layout_width="221dp"
+        android:layout_height="57dp"
+        android:layout_marginStart="80dp"
+        android:layout_marginBottom="252dp"
         android:text="Gather cell ____ data"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
