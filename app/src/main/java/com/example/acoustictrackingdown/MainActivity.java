@@ -42,9 +42,9 @@ import java.util.ArrayList;
 import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
-    private Button specButton, trackButton, gatherDataButton;
+    private Button specButton, trackButton, gatherDataButton, positionButton;
     private Spinner cellSelect;
-    private ImageView spectrogramFull, spectrogramExtract, spectrogramSmallExtract;
+    private ImageView spectrogramFull, spectrogramExtract, spectrogramSmallExtract, buildingMap;
     private static String cell = "Not_defined_yet";
     private static String FILE_NAME = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".pcm"; // File name with current date and time
     private static String FILE_NAME_2 = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_processed" + ".pcm"; // File name with current date and time
@@ -64,10 +64,13 @@ public class MainActivity extends AppCompatActivity {
     private static final int OVERLAP = 128;
     private static final int FFT_SIZE = WINDOW_SIZE;
     private static final int SAMPLE_SIZE = 5;
+    private static double[] SPECTRAL_CONTRAST = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        buildingMap = (ImageView) findViewById(R.id.map);
+        positionButton = (Button) findViewById(R.id.positioning);
         specButton = (Button) findViewById(R.id.full_spectrogram_button);
         trackButton = (Button) findViewById(R.id.acoustic_button);
         gatherDataButton = (Button) findViewById(R.id.gatherData);
@@ -84,6 +87,8 @@ public class MainActivity extends AppCompatActivity {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, items);
         cellSelect.setAdapter(adapter);
 
+        buildingMap.setImageResource(R.drawable.map);
+
         // set listener for the track button
         trackButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -92,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
                 specButton.setEnabled(false);
                 gatherDataButton.setEnabled(false);
                 cellSelect.setEnabled(false);
+                positionButton.setEnabled(false);
                 // initialize the chirp signal and audio
                 CHIRP_SIGNAL = generateChirpSignal();
                 CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
@@ -117,6 +123,7 @@ public class MainActivity extends AppCompatActivity {
                 cellSelect.setEnabled(true);
                 trackButton.setEnabled(true);
                 specButton.setEnabled(true);
+                positionButton.setEnabled(true);
             }
         });
 
@@ -128,6 +135,7 @@ public class MainActivity extends AppCompatActivity {
                 specButton.setEnabled(false);
                 gatherDataButton.setEnabled(false);
                 cellSelect.setEnabled(false);
+                positionButton.setEnabled(false);
                 Bitmap plot = plotSpectrogram();
                 spectrogramFull.setImageBitmap(plot);
                 Bitmap plot2 = plotSpectrogram2();
@@ -150,6 +158,7 @@ public class MainActivity extends AppCompatActivity {
                 cellSelect.setEnabled(true);
                 trackButton.setEnabled(true);
                 specButton.setEnabled(true);
+                positionButton.setEnabled(true);
             }
         });
 
@@ -176,6 +185,7 @@ public class MainActivity extends AppCompatActivity {
                 specButton.setEnabled(false);
                 gatherDataButton.setEnabled(false);
                 cellSelect.setEnabled(false);
+                positionButton.setEnabled(false);
 
                 // Define the delay between iterations (in milliseconds)
                 final int delay = 1500;
@@ -223,9 +233,47 @@ public class MainActivity extends AppCompatActivity {
                             specButton.setEnabled(true);
                             gatherDataButton.setEnabled(true);
                             cellSelect.setEnabled(true);
+                            positionButton.setEnabled(true);
                         }
                     }
                 }, delay);
+            }
+        });
+
+        positionButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                CHIRP_SIGNAL = generateChirpSignal();
+                CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
+                FILE_NAME = generateFileName();
+                FILE_NAME_2 = generateFileName2();
+                FILE_NAME_3 = generateFileNameTest();
+                FILE_NAME_CELL2 = "Track";
+                recordAudio(RECORDING_DURATION);
+                INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
+                extractAudioSegmentIndex();
+                Bitmap plot = plotSpectrogram();
+                spectrogramFull.setImageBitmap(plot);
+                Bitmap plot2 = plotSpectrogram2();
+                spectrogramExtract.setImageBitmap(plot2);
+                Bitmap plot3 = plotSpectrogram3();
+                spectrogramSmallExtract.setImageBitmap(plot3);
+                Bitmap plotSave = plotSpectrogramSave();
+                // Save the bitmap to a file
+                File file = new File(generateFilePathTest());
+                try {
+                    FileOutputStream fos = new FileOutputStream(file);
+                    plotSave.compress(Bitmap.CompressFormat.PNG, 100, fos); // Adjust the compression quality as needed
+                    fos.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                // Then apply the model here to determine position
+                gatherDataButton.setEnabled(true);
+                cellSelect.setEnabled(true);
+                trackButton.setEnabled(true);
+                specButton.setEnabled(true);
+                positionButton.setEnabled(true);
             }
         });
     }
@@ -274,6 +322,12 @@ public class MainActivity extends AppCompatActivity {
         File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "CSVs");
         storageDir.mkdirs(); // Create the "Test" folder if it doesn't exist
         return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + "CSVs" + "/" + FILE_NAME_CELL2;
+    }
+
+    private String generateFilePathCell2Testing() {
+        File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "Track");
+        storageDir.mkdirs(); // Create the "Test" folder if it doesn't exist
+        return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + "Track" + "/" + FILE_NAME_CELL2;
     }
 
     private void recordAudio(int durationMs) {
@@ -812,7 +866,7 @@ public class MainActivity extends AppCompatActivity {
                 newSpectrogram[frequency - startRow][frame] = spectrogram[frequency][frame];
             }
         }
-        computeAndSaveSpectralContrast(newSpectrogram);
+        SPECTRAL_CONTRAST = computeAndSaveSpectralContrast(newSpectrogram);
 
         // plot the bitmap
         int targetWidth = newFrameBin * 2; // Example target width
@@ -822,7 +876,7 @@ public class MainActivity extends AppCompatActivity {
         return spectrogramBitmap;
     }
 
-    private void computeAndSaveSpectralContrast(double[][] newSpectrogram) {
+    private double[] computeAndSaveSpectralContrast(double[][] newSpectrogram) {
         // Determine the number of frequency bins and frames
         int frequencyBin = newSpectrogram.length;
         int frameBin = newSpectrogram[0].length;
@@ -888,6 +942,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return spectralContrast;
     }
 
     private static double[] applyWindow(double[] frame, int startIndex, int windowSize) {

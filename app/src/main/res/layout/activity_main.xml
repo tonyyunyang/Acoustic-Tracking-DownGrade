@@ -8,10 +8,10 @@
 
     <Button
         android:id="@+id/acoustic_button"
-        android:layout_width="178dp"
-        android:layout_height="50dp"
+        android:layout_width="161dp"
+        android:layout_height="52dp"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         android:text="Omit Chirp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -20,18 +20,18 @@
         android:id="@+id/full_spectrogram_button"
         android:layout_width="161dp"
         android:layout_height="52dp"
-        android:layout_marginStart="216dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginStart="212dp"
+        android:layout_marginTop="12dp"
         android:text="Full Spectrogram"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
         android:id="@+id/Spectrogram_Full"
-        android:layout_width="134dp"
-        android:layout_height="138dp"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
         android:layout_marginStart="36dp"
-        android:layout_marginTop="84dp"
+        android:layout_marginTop="64dp"
         android:layout_marginEnd="40dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
@@ -41,25 +41,24 @@
 
     <ImageView
         android:id="@+id/extracted_spectrogram"
-        android:layout_width="135dp"
-        android:layout_height="139dp"
-        android:layout_marginBottom="508dp"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_marginTop="68dp"
+        android:layout_marginEnd="68dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.793"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         tools:srcCompat="@tools:sample/avatars" />
 
     <ImageView
         android:id="@+id/f_extracted_spectrogram"
-        android:layout_width="247dp"
-        android:layout_height="108dp"
+        android:layout_width="400dp"
+        android:layout_height="50dp"
         android:layout_marginStart="85dp"
         android:layout_marginEnd="85dp"
-        android:layout_marginBottom="392dp"
+        android:layout_marginBottom="548dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.833"
+        app:layout_constraintHorizontal_bias="0.503"
         app:layout_constraintStart_toStartOf="parent"
         tools:srcCompat="@tools:sample/avatars" />
 
@@ -68,7 +67,7 @@
         android:layout_width="355dp"
         android:layout_height="61dp"
         android:layout_marginStart="28dp"
-        android:layout_marginBottom="324dp"
+        android:layout_marginBottom="476dp"
         android:dropDownWidth="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
@@ -77,10 +76,42 @@
         android:id="@+id/gatherData"
         android:layout_width="221dp"
         android:layout_height="57dp"
-        android:layout_marginStart="80dp"
-        android:layout_marginBottom="252dp"
+        android:layout_marginStart="84dp"
+        android:layout_marginBottom="408dp"
         android:text="Gather cell ____ data"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <ImageView
+        android:id="@+id/map"
+        android:layout_width="338dp"
+        android:layout_height="278dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="496dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:srcCompat="@tools:sample/avatars" />
+
+    <Button
+        android:id="@+id/positioning"
+        android:layout_width="206dp"
+        android:layout_height="64dp"
+        android:layout_marginStart="96dp"
+        android:layout_marginBottom="344dp"
+        android:text="Track"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <EditText
+        android:id="@+id/editTextText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="437dp"
+        android:layout_marginEnd="105dp"
+        android:ems="10"
+        android:inputType="text"
+        android:text="We are at ____"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
