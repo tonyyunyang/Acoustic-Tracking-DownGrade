@@ -63,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int WINDOW_SIZE = 256;
     private static final int OVERLAP = 128;
     private static final int FFT_SIZE = WINDOW_SIZE;
-    private static final int SAMPLE_SIZE = 5;
+    private static final int SAMPLE_SIZE = 200;
     private static double[] SPECTRAL_CONTRAST = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
