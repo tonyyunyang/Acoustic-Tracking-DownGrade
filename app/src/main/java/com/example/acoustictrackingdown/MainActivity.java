@@ -248,7 +248,7 @@ public class MainActivity extends AppCompatActivity {
                 FILE_NAME = generateFileName();
                 FILE_NAME_2 = generateFileName2();
                 FILE_NAME_3 = generateFileNameTest();
-                FILE_NAME_CELL2 = "Track";
+                FILE_NAME_CELL2 = "Track" + ".csv";
                 recordAudio(RECORDING_DURATION);
                 INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
                 extractAudioSegmentIndex();
