@@ -65,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int FFT_SIZE = WINDOW_SIZE;
     private static final int SAMPLE_SIZE = 200;
     private static double[] SPECTRAL_CONTRAST = null;
+    private ImageClassifier mImageClassifier;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -77,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
         spectrogramFull = (ImageView) findViewById(R.id.Spectrogram_Full);
         spectrogramExtract = (ImageView) findViewById(R.id.extracted_spectrogram);
         spectrogramSmallExtract = (ImageView) findViewById(R.id.f_extracted_spectrogram);
+        mImageClassifier = new ImageClassifier(MainActivity.this, "model_android.ptl");
 
         cellSelect = (Spinner) findViewById(R.id.cell_selector);
         ArrayList<String> items = new ArrayList<>();
@@ -269,6 +271,9 @@ public class MainActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
                 // Then apply the model here to determine position
+                int predictedClassIndex = mImageClassifier.classifyImage(plot3);
+                // Return the predicted class
+                Toast.makeText(getApplicationContext(), "Class is: " + predictedClassIndex, Toast.LENGTH_SHORT).show();
                 gatherDataButton.setEnabled(true);
                 cellSelect.setEnabled(true);
                 trackButton.setEnabled(true);
