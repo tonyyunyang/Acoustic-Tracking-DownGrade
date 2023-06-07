@@ -24,6 +24,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.apache.commons.math3.complex.Complex;
@@ -45,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
     private Button specButton, trackButton, gatherDataButton, positionButton;
     private Spinner cellSelect;
     private ImageView spectrogramFull, spectrogramExtract, spectrogramSmallExtract, buildingMap;
+    private TextView location;
     private static String cell = "Not_defined_yet";
     private static String FILE_NAME = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".pcm"; // File name with current date and time
     private static String FILE_NAME_2 = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_processed" + ".pcm"; // File name with current date and time
@@ -71,6 +73,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         buildingMap = (ImageView) findViewById(R.id.map);
+        location = (TextView) findViewById(R.id.textView);
         positionButton = (Button) findViewById(R.id.positioning);
         specButton = (Button) findViewById(R.id.full_spectrogram_button);
         trackButton = (Button) findViewById(R.id.acoustic_button);
@@ -274,6 +277,8 @@ public class MainActivity extends AppCompatActivity {
                 int predictedClassIndex = mImageClassifier.classifyImage(plot3);
                 // Return the predicted class
                 Toast.makeText(getApplicationContext(), "Class is: " + predictedClassIndex, Toast.LENGTH_SHORT).show();
+                String result = "C" + predictedClassIndex;
+                location.setText(result);
                 gatherDataButton.setEnabled(true);
                 cellSelect.setEnabled(true);
                 trackButton.setEnabled(true);
