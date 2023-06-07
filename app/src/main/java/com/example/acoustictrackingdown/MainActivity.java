@@ -274,7 +274,7 @@ public class MainActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
                 // Then apply the model here to determine position
-                int predictedClassIndex = mImageClassifier.classifyImage(plot3);
+                int predictedClassIndex = mImageClassifier.classifyImage(plotSave);
                 // Return the predicted class
                 Toast.makeText(getApplicationContext(), "Class is: " + predictedClassIndex, Toast.LENGTH_SHORT).show();
                 String result = "C" + predictedClassIndex;
