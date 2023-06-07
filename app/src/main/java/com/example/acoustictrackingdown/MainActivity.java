@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
         spectrogramFull = (ImageView) findViewById(R.id.Spectrogram_Full);
         spectrogramExtract = (ImageView) findViewById(R.id.extracted_spectrogram);
         spectrogramSmallExtract = (ImageView) findViewById(R.id.f_extracted_spectrogram);
-        mImageClassifier = new ImageClassifier(MainActivity.this, "model.ptl");
+        mImageClassifier = new ImageClassifier(MainActivity.this, "model_7_cells.ptl");
 
 
         // set listener for the track button
