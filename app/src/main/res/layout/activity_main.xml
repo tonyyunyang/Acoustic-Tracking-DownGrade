@@ -104,10 +104,10 @@
 
     <TextView
         android:id="@+id/textView"
-        android:layout_width="41dp"
-        android:layout_height="40dp"
-        android:layout_marginStart="184dp"
-        android:layout_marginBottom="292dp"
+        android:layout_width="85dp"
+        android:layout_height="41dp"
+        android:layout_marginStart="160dp"
+        android:layout_marginBottom="300dp"
         android:text="C__"
         android:textSize="24sp"
         app:layout_constraintBottom_toBottomOf="parent"
