@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
         spectrogramFull = (ImageView) findViewById(R.id.Spectrogram_Full);
         spectrogramExtract = (ImageView) findViewById(R.id.extracted_spectrogram);
         spectrogramSmallExtract = (ImageView) findViewById(R.id.f_extracted_spectrogram);
-        mImageClassifier = new ImageClassifier(MainActivity.this, "model_android_C1_C9.ptl");
+        mImageClassifier = new ImageClassifier(MainActivity.this, "model_android_06.09_C1_C9.ptl");
 
         cellSelect = (Spinner) findViewById(R.id.cell_selector);
         ArrayList<String> items = new ArrayList<>();
@@ -264,6 +264,7 @@ public class MainActivity extends AppCompatActivity {
                 Bitmap plot3 = plotSpectrogram3();
                 spectrogramSmallExtract.setImageBitmap(plot3);
                 Bitmap plotSave = plotSpectrogramSave();
+                Bitmap plotTest = plotSpectrogramTest();
                 // Save the bitmap to a file
                 File file = new File(generateFilePathTest());
                 try {
@@ -274,7 +275,7 @@ public class MainActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
                 // Then apply the model here to determine position
-                int predictedClassIndex = mImageClassifier.classifyImage(plotSave);
+                int predictedClassIndex = mImageClassifier.classifyImage(plotTest);
                 // Return the predicted class
                 Toast.makeText(getApplicationContext(), "Class is: " + predictedClassIndex, Toast.LENGTH_SHORT).show();
                 String result = "C" + predictedClassIndex;
@@ -886,6 +887,85 @@ public class MainActivity extends AppCompatActivity {
         return spectrogramBitmap;
     }
 
+    private Bitmap plotSpectrogramTest() {
+        // Read the .pcm audio file into a byte array
+        byte[] audioData = null;
+        try {
+            File audioFile = new File(generateFilePath2());
+            audioData = new byte[(int) audioFile.length()];
+            FileInputStream inputStream = new FileInputStream(audioFile);
+            inputStream.read(audioData);
+            inputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (audioData == null) {
+            // Error reading the audio file
+            Toast.makeText(getApplicationContext(), "Audio file empty", Toast.LENGTH_SHORT).show();
+            return null;
+        }
+
+        int numSmaples = audioData.length / 2;
+        double[] audioSamplesDouble = new double[numSmaples];
+
+        for (int i = 0; i < numSmaples; i++) {
+            audioSamplesDouble[i] = (audioData[2 * i + 1] << 8) | (audioData[2 * i] & 0xff);
+        }
+
+        Log.d("The audio length ", String.valueOf(audioSamplesDouble.length));
+
+        // STFT, determine the size of the 2D array spectrogram first
+        int frameBin = (int) Math.floor((double) (audioSamplesDouble.length - WINDOW_SIZE) / OVERLAP) + 1;
+        int frequencyBin = (int) Math.floor((double) FFT_SIZE / 2) + 1;
+        double[][] spectrogram = new double[frequencyBin][frameBin];
+
+        // Perform STFT and populate the spectrogram array
+        // Iterate over frames
+        for (int frame = 0; frame < frameBin; frame++) {
+            // Apply window function to the frame
+            double[] windowedFrame = applyWindow(audioSamplesDouble, frame * OVERLAP, WINDOW_SIZE);
+
+            // Compute FFT on the windowed frame
+            Complex[] fftResult = computeFFT(windowedFrame, FFT_SIZE);
+
+            // Populate the spectrogram array with the magnitude of FFT bins
+            for (int frequency = 0; frequency < frequencyBin; frequency++) {
+                spectrogram[frequency][frame] = computeMagnitude(fftResult[frequency]);
+            }
+        }
+
+//        Log.d("The height of spectrogram is ", String.valueOf(frequencyBin));
+//        Log.d("The width of spectrogram is ", String.valueOf(frameBin));
+//
+//        for (int i = 0; i < frameBin; i++) {
+//            for (int j = 0; j < frequencyBin; j++) {
+//                Log.d("", String.valueOf(spectrogram[j][i]));
+//            }
+//        }
+        int newFrameBin = frameBin;
+        int newFrequencyBin = (int) Math.ceil((END_FREQUENCY - START_FREQUENCY) / ((SAMPLING_RATE_IN_HZ / 2.0) / frequencyBin)) + 4;
+        double[][] newSpectrogram = new double[newFrequencyBin][newFrameBin];
+
+        Log.d("The height of spectrogram is ", String.valueOf(newFrequencyBin));
+        Log.d("The width of spectrogram is ", String.valueOf(newFrameBin));
+
+        int startRow = (int) Math.floor(START_FREQUENCY / ((SAMPLING_RATE_IN_HZ / 2.0) / frequencyBin)) - 2;
+        int endRow = (int) startRow + newFrequencyBin;
+
+        for (int frame = 0; frame < newFrameBin; frame++) {
+            for (int frequency = startRow; frequency < endRow; frequency++) {
+                newSpectrogram[frequency - startRow][frame] = spectrogram[frequency][frame];
+            }
+        }
+
+        // plot the bitmap
+        int targetWidth = newFrameBin * 2; // Example target width
+        int targetHeight = newFrequencyBin * 2; // Example target height
+
+        Bitmap spectrogramBitmap = plotExtractedTestSpectrogram(newSpectrogram, targetWidth, targetHeight);
+        return spectrogramBitmap;
+    }
+
     private double[] computeAndSaveSpectralContrast(double[][] newSpectrogram) {
         // Determine the number of frequency bins and frames
         int frequencyBin = newSpectrogram.length;
@@ -1049,6 +1129,39 @@ public class MainActivity extends AppCompatActivity {
         return scaledBitmap;
     }
 
+    private static Bitmap plotExtractedTestSpectrogram(double[][] spectrogram, int targetWidth, int targetHeight) {
+        int width = spectrogram[0].length;
+        int height = spectrogram.length;
+
+        // Scale up the spectrogram to the target dimensions
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, false);
+
+        // Normalize the spectrogram values between 0 and 1
+        double[][] normalizedSpectrogram = normalizeSpectrogram(spectrogram);
+
+        // Iterate over the spectrogram and set pixel colors based on the 'jet' colormap
+        for (int x = 0; x < targetWidth; x++) {
+            for (int y = 0; y < targetHeight; y++) {
+                // Map the pixel coordinates to the spectrogram indices
+                int originalX = x * width / targetWidth;
+                int originalY = (targetHeight - y - 1) * height / targetHeight; // Flip the vertical axis
+
+                // Get the magnitude value at the corresponding spectrogram indices
+                double magnitude = normalizedSpectrogram[originalY][originalX];
+
+                // Map the magnitude value to the 'jet' colormap
+//                int color = getPlasmaColorFromMagnitude(magnitude);
+                int color = getGrayTestColorFromMagnitude(magnitude);
+
+                // Set the pixel color in the scaled bitmap
+                scaledBitmap.setPixel(x, y, color);
+            }
+        }
+
+        return scaledBitmap;
+    }
+
     private static double[][] normalizeSpectrogram(double[][] spectrogram) {
         int height = spectrogram.length;
         int width = spectrogram[0].length;
@@ -1097,6 +1210,21 @@ public class MainActivity extends AppCompatActivity {
     private static int getGray2ColorFromMagnitude(double magnitude) {
         // scale the magnitude up a bit, but cap it at 1.
         double factor = 2.4;
+        double scaledMagnitude = magnitude * factor;
+
+        scaledMagnitude = Math.min(1.0, scaledMagnitude);
+
+        int binaryValue = (int) (255 * (1 - scaledMagnitude));
+
+        // Ensure the binaryValue is within the valid range of 0-255
+        binaryValue = Math.max(0, Math.min(255, binaryValue));
+
+        return Color.rgb(binaryValue, binaryValue, binaryValue);
+    }
+
+    private static int getGrayTestColorFromMagnitude(double magnitude) {
+        // scale the magnitude up a bit, but cap it at 1.
+        double factor = 1.5; // change this factor, this might have a significant influence on pattern
         double scaledMagnitude = magnitude * factor;
 
         scaledMagnitude = Math.min(1.0, scaledMagnitude);
