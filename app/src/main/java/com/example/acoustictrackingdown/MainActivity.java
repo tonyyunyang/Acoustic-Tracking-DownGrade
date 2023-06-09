@@ -1224,7 +1224,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static int getGrayTestColorFromMagnitude(double magnitude) {
         // scale the magnitude up a bit, but cap it at 1.
-        double factor = 1.5; // change this factor, this might have a significant influence on pattern
+        double factor = 1.7; // change this factor, this might have a significant influence on pattern
         double scaledMagnitude = magnitude * factor;
 
         scaledMagnitude = Math.min(1.0, scaledMagnitude);
