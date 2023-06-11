@@ -73,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int WINDOW_SIZE = 256;
     private static final int OVERLAP = 128;
     private static final int FFT_SIZE = WINDOW_SIZE;
-    private static final int SAMPLE_SIZE = 20;
+    private static final int SAMPLE_SIZE = 50;
     private static double[] SPECTRAL_CONTRAST = null;
     private ImageClassifier mImageClassifier;
     private String CNN_MODEL = "model_android_06.09_C1_C9.ptl";
