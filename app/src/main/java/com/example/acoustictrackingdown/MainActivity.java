@@ -73,9 +73,10 @@ public class MainActivity extends AppCompatActivity {
     private static final int WINDOW_SIZE = 256;
     private static final int OVERLAP = 128;
     private static final int FFT_SIZE = WINDOW_SIZE;
-    private static final int SAMPLE_SIZE = 200;
+    private static final int SAMPLE_SIZE = 20;
     private static double[] SPECTRAL_CONTRAST = null;
     private ImageClassifier mImageClassifier;
+    private String CNN_MODEL = "model_android_06.09_C1_C9.ptl";
     private ArrayList<Point> WEST_EAST_RSS = new ArrayList<>(); // dataset for distinguishing east and west
     private ArrayList<Point> FLOOR_RSS = new ArrayList<>(); // dataset for distinguishing floor1, floor2 and floor3 (cell4, 5, 6)
     private Point TESTING_POINT = null;
@@ -85,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSIONS_REQUEST_CODE = 123;
     private KNN KNN_EAST_WEST = null;
     private KNN KNN_FLOORS = null;
-    private static final int KNN_EAST_WEST_K_SIZE = 7;
+    private static final int KNN_EAST_WEST_K_SIZE = 3;
     private static final int KNN_FLOORS_K_SIZE = 3;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
         spectrogramFull = (ImageView) findViewById(R.id.Spectrogram_Full);
         spectrogramExtract = (ImageView) findViewById(R.id.extracted_spectrogram);
         spectrogramSmallExtract = (ImageView) findViewById(R.id.f_extracted_spectrogram);
-        mImageClassifier = new ImageClassifier(MainActivity.this, "model_android_06.09_C1_C9.ptl");
+        mImageClassifier = new ImageClassifier(MainActivity.this, CNN_MODEL);
 
         cellSelect = (Spinner) findViewById(R.id.cell_selector);
         ArrayList<String> items = new ArrayList<>();
@@ -283,6 +284,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 TESTING_POINT = createPointFromScan("Test");
+                if (TESTING_POINT == null) {
+                    Toast.makeText(getApplicationContext(), "Please press the button again", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 String res = KNN_EAST_WEST.classifyLocation(TESTING_POINT);
                 Toast.makeText(getApplicationContext(), "We are at: " + res, Toast.LENGTH_SHORT).show();
                 CHIRP_SIGNAL = generateChirpSignal();
@@ -1459,6 +1464,7 @@ public class MainActivity extends AppCompatActivity {
         // Check if the result is same as the previous result
         if(resultFileBuilder.toString().equals(previousResult)) {
             Toast.makeText(this, "WIFI scan still frozen", Toast.LENGTH_SHORT).show();
+            return null;
         } else {
             previousResult = resultFileBuilder.toString();
 
