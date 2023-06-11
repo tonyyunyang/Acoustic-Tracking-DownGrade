@@ -278,7 +278,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 TESTING_POINT = createPointFromScan("Test");
-                String res = KNN.classify(TESTING_POINT);
+                String res = KNN.classifyLocation(TESTING_POINT);
                 Toast.makeText(getApplicationContext(), "We are at: " + res, Toast.LENGTH_SHORT).show();
                 CHIRP_SIGNAL = generateChirpSignal();
                 CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);

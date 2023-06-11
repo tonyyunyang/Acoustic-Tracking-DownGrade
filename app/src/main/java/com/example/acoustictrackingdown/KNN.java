@@ -21,8 +21,8 @@ public class KNN {
 
     // Classify a point using the KNN
     // below is a fancy method
-    public String classify(Point p) {
-        Distance[] distanceResults = euclideanDistanceAll(p, points);
+    public String classifyLocation(Point p) {
+        Distance[] distanceResults = euclideanDistanceWholeArray(p, points);
 
         // Count occurrences of each class label among the nearest neighbors
         Map<String, Integer> count = new HashMap<>();
@@ -44,7 +44,7 @@ public class KNN {
         return maxClass;
     }
 
-//    public String classify(Point p) {
+//    public String classifyLocation(Point p) {
 //        Distance[] distanceResults = euclideanDistanceAll(p, points);
 //
 //        // Count occurrences of each class label among the nearest neighbors
@@ -72,7 +72,7 @@ public class KNN {
 //    }
 
     // Calculate the Euclidean distance between a test point and a list of training points
-    public static Distance[] euclideanDistanceAll(Point testVec, ArrayList<Point> trainVec) {
+    public static Distance[] euclideanDistanceWholeArray(Point testVec, ArrayList<Point> trainVec) {
         Distance[] distances = new Distance[trainVec.size()];
 
         for (int i = 0; i < trainVec.size(); i++) {
@@ -81,7 +81,7 @@ public class KNN {
         }
 
         // Sort the distances in ascending order
-        Arrays.sort(distances, Comparator.comparingDouble(Distance::getDistance));
+        Arrays.sort(distances, Comparator.comparingDouble(Distance::getEuclideanDistance));
 
         return distances;
     }
