@@ -22,6 +22,7 @@ public class ImageClassifier {
     private Module mModule;
 
     public ImageClassifier(Context context, String modelPath) {
+        // Load the PyTorch model
         mModule = LiteModuleLoader.load(assetFilePath(context, modelPath));
     }
 
@@ -53,6 +54,7 @@ public class ImageClassifier {
                 scoresStr.append(", ");
             }
         }
+        // Log the scores and the number of scores
         Log.i(TAG, scoresStr.toString() + ", number of scores: " + scores.length);
 
         return maxIndex;
@@ -75,6 +77,7 @@ public class ImageClassifier {
             }
             return file.getAbsolutePath();
         } catch (IOException e) {
+            // Error occurred while processing the asset file
             Log.e(TAG, "Error process asset " + assetName + " to file path");
         }
         return null;

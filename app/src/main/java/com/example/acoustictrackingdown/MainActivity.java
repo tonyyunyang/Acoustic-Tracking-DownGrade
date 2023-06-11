@@ -45,7 +45,6 @@ import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
@@ -77,15 +76,15 @@ public class MainActivity extends AppCompatActivity {
     private static final int SAMPLE_SIZE = 200;
     private static double[] SPECTRAL_CONTRAST = null;
     private ImageClassifier mImageClassifier;
-    private ArrayList<Point> WEST_EAST_RSS = new ArrayList<>();
-    private ArrayList<Point> FLOOR_RSS = new ArrayList<>();
+    private ArrayList<Point> WEST_EAST_RSS = new ArrayList<>(); // dataset for distinguishing east and west
+    private ArrayList<Point> FLOOR_RSS = new ArrayList<>(); // dataset for distinguishing floor1, floor2 and floor3 (cell4, 5, 6)
     private Point TESTING_POINT = null;
     private final List<String> ALLOWED_SSIDS = Arrays.asList("TUD-facility", "tudelft-dastud", "eduroam");
     private String previousResult = "";  // to store the previous result
     private WifiManager wifiManager;
     private static final int PERMISSIONS_REQUEST_CODE = 123;
     private KNN KNN = null;
-    private static final int KNN_K_SIZE = 3;
+    private static final int KNN_K_SIZE = 7;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -1355,8 +1354,8 @@ public class MainActivity extends AppCompatActivity {
 
         try (FileWriter writer = new FileWriter(file)) {
             for (Point point : data_list) {
-                writer.write(point.getName());
-                float[] features = point.getVector();
+                writer.write(point.getLabel());
+                float[] features = point.getBssidRSSI();
                 for (float f : features) {
                     writer.write("," + f);
                 }
@@ -1373,8 +1372,8 @@ public class MainActivity extends AppCompatActivity {
 
         try (FileWriter writer = new FileWriter(file, true)) {  // append to existing file
             for (Point point : data_list) {
-                writer.write(point.getName());
-                float[] features = point.getVector();
+                writer.write(point.getLabel());
+                float[] features = point.getBssidRSSI();
                 for (float f : features) {
                     writer.write("," + f);
                 }
