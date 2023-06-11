@@ -83,8 +83,10 @@ public class MainActivity extends AppCompatActivity {
     private String previousResult = "";  // to store the previous result
     private WifiManager wifiManager;
     private static final int PERMISSIONS_REQUEST_CODE = 123;
-    private KNN KNN = null;
-    private static final int KNN_K_SIZE = 7;
+    private KNN KNN_EAST_WEST = null;
+    private KNN KNN_FLOORS = null;
+    private static final int KNN_EAST_WEST_K_SIZE = 7;
+    private static final int KNN_FLOORS_K_SIZE = 3;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -112,9 +114,12 @@ public class MainActivity extends AppCompatActivity {
         buildingMap.setImageResource(R.drawable.map);
 
         fillDataListASCII(WEST_EAST_RSS, "eastwest");
+//        fillDataListASCII(FLOOR_RSS, "floors");
 
         // create the KNN model for classification
-        KNN = new KNN(WEST_EAST_RSS, KNN_K_SIZE);
+        KNN_EAST_WEST = new KNN(WEST_EAST_RSS, KNN_EAST_WEST_K_SIZE);
+//        saveToCSV(WEST_EAST_RSS, "test.csv");
+        KNN_FLOORS = new KNN(FLOOR_RSS, KNN_FLOORS_K_SIZE);
 //        saveToCSV(WEST_EAST_RSS, "test.csv");
 
         // Set the wifi manager
@@ -278,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 TESTING_POINT = createPointFromScan("Test");
-                String res = KNN.classifyLocation(TESTING_POINT);
+                String res = KNN_EAST_WEST.classifyLocation(TESTING_POINT);
                 Toast.makeText(getApplicationContext(), "We are at: " + res, Toast.LENGTH_SHORT).show();
                 CHIRP_SIGNAL = generateChirpSignal();
                 CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
@@ -1484,6 +1489,4 @@ public class MainActivity extends AppCompatActivity {
             }, PERMISSIONS_REQUEST_CODE);
         }
     }
-
-
 }
