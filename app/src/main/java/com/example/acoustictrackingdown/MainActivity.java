@@ -14,6 +14,8 @@ import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
+import android.net.wifi.ScanResult;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -32,15 +34,22 @@ import org.apache.commons.math3.transform.DftNormalization;
 import org.apache.commons.math3.transform.FastFourierTransformer;
 import org.apache.commons.math3.transform.TransformType;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class MainActivity extends AppCompatActivity {
     private Button specButton, trackButton, gatherDataButton, positionButton;
@@ -68,6 +77,15 @@ public class MainActivity extends AppCompatActivity {
     private static final int SAMPLE_SIZE = 200;
     private static double[] SPECTRAL_CONTRAST = null;
     private ImageClassifier mImageClassifier;
+    private ArrayList<Point> WEST_EAST_RSS = new ArrayList<>();
+    private ArrayList<Point> FLOOR_RSS = new ArrayList<>();
+    private Point TESTING_POINT = null;
+    private final List<String> ALLOWED_SSIDS = Arrays.asList("TUD-facility", "tudelft-dastud", "eduroam");
+    private String previousResult = "";  // to store the previous result
+    private WifiManager wifiManager;
+    private static final int PERMISSIONS_REQUEST_CODE = 123;
+    private KNN KNN = null;
+    private static final int KNN_K_SIZE = 3;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -93,6 +111,18 @@ public class MainActivity extends AppCompatActivity {
         cellSelect.setAdapter(adapter);
 
         buildingMap.setImageResource(R.drawable.map);
+
+        fillDataListASCII(WEST_EAST_RSS, "eastwest");
+
+        // create the KNN model for classification
+        KNN = new KNN(WEST_EAST_RSS, KNN_K_SIZE);
+//        saveToCSV(WEST_EAST_RSS, "test.csv");
+
+        // Set the wifi manager
+        wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+
+        // Request necessary permissions
+        requestPermissions();
 
         // set listener for the track button
         trackButton.setOnClickListener(new View.OnClickListener() {
@@ -120,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
 //                CharSequence text_time_signal_output = String.valueOf(TIME_SIGNAL_OUTPUT);
 //                Toast.makeText(getApplicationContext(), text_time_signal_output, Toast.LENGTH_SHORT).show();
                 CharSequence index_time_signal_output = String.valueOf(INDEX_SIGNAL_OUTPUT);
-                Toast.makeText(getApplicationContext(), index_time_signal_output, Toast.LENGTH_SHORT).show();
+//                Toast.makeText(getApplicationContext(), index_time_signal_output, Toast.LENGTH_SHORT).show();
 //                extractAudioSegment();
                 extractAudioSegmentIndex();
 //                Toast.makeText(getApplicationContext(), "Acoustic Tracking Done", Toast.LENGTH_SHORT).show();
@@ -248,6 +278,9 @@ public class MainActivity extends AppCompatActivity {
         positionButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                TESTING_POINT = createPointFromScan("Test");
+                String res = KNN.classify(TESTING_POINT);
+                Toast.makeText(getApplicationContext(), "We are at: " + res, Toast.LENGTH_SHORT).show();
                 CHIRP_SIGNAL = generateChirpSignal();
                 CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
                 FILE_NAME = generateFileName();
@@ -620,7 +653,7 @@ public class MainActivity extends AppCompatActivity {
         }
         if (audioData == null) {
             // Error reading the audio file
-            Toast.makeText(getApplicationContext(), "Audio file empty", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(getApplicationContext(), "Audio file empty", Toast.LENGTH_SHORT).show();
             return null;
         }
 
@@ -678,7 +711,7 @@ public class MainActivity extends AppCompatActivity {
         }
         if (audioData == null) {
             // Error reading the audio file
-            Toast.makeText(getApplicationContext(), "Audio file empty", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(getApplicationContext(), "Audio file empty", Toast.LENGTH_SHORT).show();
             return null;
         }
 
@@ -742,7 +775,7 @@ public class MainActivity extends AppCompatActivity {
         }
         if (audioData == null) {
             // Error reading the audio file
-            Toast.makeText(getApplicationContext(), "Audio file empty", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(getApplicationContext(), "Audio file empty", Toast.LENGTH_SHORT).show();
             return null;
         }
 
@@ -821,7 +854,7 @@ public class MainActivity extends AppCompatActivity {
         }
         if (audioData == null) {
             // Error reading the audio file
-            Toast.makeText(getApplicationContext(), "Audio file empty", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(getApplicationContext(), "Audio file empty", Toast.LENGTH_SHORT).show();
             return null;
         }
 
@@ -901,7 +934,7 @@ public class MainActivity extends AppCompatActivity {
         }
         if (audioData == null) {
             // Error reading the audio file
-            Toast.makeText(getApplicationContext(), "Audio file empty", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(getApplicationContext(), "Audio file empty", Toast.LENGTH_SHORT).show();
             return null;
         }
 
@@ -1252,5 +1285,206 @@ public class MainActivity extends AppCompatActivity {
 
         return color;
     }
+
+    private void fillDataListASCII(ArrayList<Point> data_list, String filename) {
+        try {
+            InputStream inputStream = getResources().openRawResource(
+                    getResources().getIdentifier(filename,
+                            "raw", getPackageName()));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split("!");
+                ArrayList<Float> features = new ArrayList<>();
+                for (int i = 1; i < parts.length; i += 2) {
+                    // Parse BSSID as sequence of ASCII characters
+                    String bssid_string = parts[i];
+                    char[] bssid_char = bssid_string.toCharArray();
+                    for (char c: bssid_char){
+                        features.add((float) c);
+                    }
+
+                    // Parse RSS as float
+                    float rss = Float.parseFloat(parts[i+1]);
+                    features.add(rss);
+                }
+                Point point = new Point(parts[0], features);
+                data_list.add(point);
+            }
+            reader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void fillDataListHex(ArrayList<Point> data_list, String filename) {
+        try {
+            InputStream inputStream = getResources().openRawResource(
+                    getResources().getIdentifier(filename,
+                            "raw", getPackageName()));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split("!");
+                ArrayList<Float> features = new ArrayList<>();
+                for (int i = 1; i < parts.length; i += 2) {
+                    // Parse BSSID as sequence of hexadecimal numbers
+                    String bssid_string = parts[i];
+                    String[] bssid_parts = bssid_string.split(":");
+                    for (String bssid_part : bssid_parts) {
+                        int bssid_part_as_int = Integer.parseInt(bssid_part, 16);
+                        features.add((float) bssid_part_as_int);
+                    }
+
+                    // Parse RSS as float
+                    float rss = Float.parseFloat(parts[i+1]);
+                    features.add(rss);
+                }
+                Point point = new Point(parts[0], features);
+                data_list.add(point);
+            }
+            reader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void saveToCSV(ArrayList<Point> data_list, String filename) {
+        File documentsDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
+        File file = new File(documentsDirectory, filename);
+
+        try (FileWriter writer = new FileWriter(file)) {
+            for (Point point : data_list) {
+                writer.write(point.getName());
+                float[] features = point.getVector();
+                for (float f : features) {
+                    writer.write("," + f);
+                }
+                writer.write("\n");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void saveToCSVRSSTrack(ArrayList<Point> data_list, String filename) {
+        File documentsDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
+        File file = new File(documentsDirectory, filename);
+
+        try (FileWriter writer = new FileWriter(file, true)) {  // append to existing file
+            for (Point point : data_list) {
+                writer.write(point.getName());
+                float[] features = point.getVector();
+                for (float f : features) {
+                    writer.write("," + f);
+                }
+                writer.write("\n");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Point createPointFromScan(String location) {
+        if (!wifiManager.isWifiEnabled()) {
+            Toast.makeText(this, "Please enable Wi-Fi", Toast.LENGTH_SHORT).show();
+            return null;
+        }
+
+        // Check if the necessary permissions are granted
+        if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
+                checkSelfPermission(android.Manifest.permission.CHANGE_WIFI_STATE) != PackageManager.PERMISSION_GRANTED ||
+                checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+            // Request permissions
+            ActivityCompat.requestPermissions(this, new String[]{
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.CHANGE_WIFI_STATE,
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION
+            }, PERMISSIONS_REQUEST_CODE);
+            return null;
+        }
+
+        // Start a wifi scan
+        boolean scanStarted = wifiManager.startScan();
+        if (!scanStarted) {
+            Toast.makeText(this, "Scan not started. Please try again.", Toast.LENGTH_SHORT).show();
+            return null;
+        }
+
+        // Get the scan results
+        List<ScanResult> scanResults = wifiManager.getScanResults();
+
+        // Filter and sort the scan results
+        scanResults = scanResults.stream()
+                .filter(scanResult -> ALLOWED_SSIDS.contains(scanResult.SSID)) // Filter allowed SSIDs
+                .sorted(Comparator.comparingInt(scanResult -> -scanResult.level)) // Sort by RSSI level (descending)
+                .collect(Collectors.toList());
+
+        // Check if there are at least 20 access points
+        if (scanResults.size() < 20) {
+            Toast.makeText(this, "Not enough access points\n Please move a bit", Toast.LENGTH_SHORT).show();
+            return null;
+        }
+
+        ArrayList<Float> vector = new ArrayList<>();
+        StringBuilder resultFileBuilder = new StringBuilder();
+
+        // Collect only first 20 results
+        for (int i = 0; i < 20; i++) {
+            ScanResult scanResult = scanResults.get(i);
+
+            // Add BSSID ASCII values to the vector
+            for (char c : scanResult.BSSID.toCharArray()) {
+                vector.add((float) c);
+            }
+
+            // Add RSSI level to the vector
+            float rssi = (float) scanResult.level;
+            vector.add(rssi);
+
+            // For File
+            if (i == 0) resultFileBuilder.append(location).append("!");
+            resultFileBuilder.append(scanResult.BSSID).append("!").append(rssi);
+            if (i < 19) resultFileBuilder.append("!");
+        }
+
+        // Create a new point
+        Point point = new Point(location, vector);
+
+        // Check if the result is same as the previous result
+        if(resultFileBuilder.toString().equals(previousResult)) {
+            Toast.makeText(this, "WIFI scan still frozen", Toast.LENGTH_SHORT).show();
+        } else {
+            previousResult = resultFileBuilder.toString();
+
+            // Save point to CSV file
+            ArrayList<Point> pointList = new ArrayList<>();
+            pointList.add(point);
+            saveToCSVRSSTrack(pointList, "RSS_Track.csv");
+//            Toast.makeText(this, "Data saved", Toast.LENGTH_SHORT).show();
+        }
+
+        TESTING_POINT = point;
+        return point;
+    }
+
+    private void requestPermissions() {
+        // Check if Wi-Fi, location and audio permissions are granted
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.CHANGE_WIFI_STATE) != PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+
+            // Request permissions
+            ActivityCompat.requestPermissions(this, new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.CHANGE_WIFI_STATE,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                    Manifest.permission.RECORD_AUDIO
+            }, PERMISSIONS_REQUEST_CODE);
+        }
+    }
+
 
 }
