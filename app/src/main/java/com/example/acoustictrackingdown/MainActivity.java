@@ -280,6 +280,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // This positionButton is the button which should be focused on, as it performs the location detection
+        // so far, the method applied is using RSS to decide which model to activate CNN "West" or CNN "East"
+        // and then when the prediction of the model falls in the range of cell 4, 5, and 6, another RSS+KNN is used to determine which floor
+        // we are on, in order to output the corresponding detected cell
         positionButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
