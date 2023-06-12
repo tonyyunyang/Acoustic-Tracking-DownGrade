@@ -48,6 +48,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class MainActivity extends AppCompatActivity {
@@ -115,13 +116,13 @@ public class MainActivity extends AppCompatActivity {
         buildingMap.setImageResource(R.drawable.map);
 
         fillDataListASCII(WEST_EAST_RSS, "eastwest");
-//        fillDataListASCII(FLOOR_RSS, "floors");
+        fillDataListASCII(FLOOR_RSS, "floors");
 
         // create the KNN model for classification
         KNN_EAST_WEST = new KNN(WEST_EAST_RSS, KNN_EAST_WEST_K_SIZE);
-//        saveToCSV(WEST_EAST_RSS, "test.csv");
+//        saveToCSV(WEST_EAST_RSS, "test1.csv");
         KNN_FLOORS = new KNN(FLOOR_RSS, KNN_FLOORS_K_SIZE);
-//        saveToCSV(WEST_EAST_RSS, "test.csv");
+//        saveToCSV(FLOOR_RSS, "test2.csv");
 
         // Set the wifi manager
         wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
@@ -323,14 +324,28 @@ public class MainActivity extends AppCompatActivity {
                 // Then apply the model here to determine position
                 int predictedClassIndex = mImageClassifier.classifyImage(plotTest);
                 // Return the predicted class
-                Toast.makeText(getApplicationContext(), "Class is: " + predictedClassIndex, Toast.LENGTH_SHORT).show();
+//                Toast.makeText(getApplicationContext(), "Class is: " + predictedClassIndex, Toast.LENGTH_SHORT).show();
+                int compensateFloor = 0;
                 String result = "C" + predictedClassIndex;
+                if (predictedClassIndex == 4 | predictedClassIndex == 5 | predictedClassIndex == 6) {
+                    String res2 = KNN_FLOORS.classifyLocation(TESTING_POINT);
+                    if (Objects.equals(res2, "floor1")) {
+                        compensateFloor = 6;
+                    } else if (Objects.equals(res2, "floor2")) {
+                        compensateFloor = 5;
+                    } else {
+                        compensateFloor = 4;
+                    }
+                    Toast.makeText(getApplicationContext(), "We are at: " + res2 + " || " + "Cell: " + compensateFloor, Toast.LENGTH_SHORT).show();
+                    result = "C" + compensateFloor;
+                }
                 location.setText(result);
                 gatherDataButton.setEnabled(true);
                 cellSelect.setEnabled(true);
                 trackButton.setEnabled(true);
                 specButton.setEnabled(true);
                 positionButton.setEnabled(true);
+                TESTING_POINT = null;
             }
         });
     }
@@ -1270,7 +1285,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static int getGrayTestColorFromMagnitude(double magnitude) {
         // scale the magnitude up a bit, but cap it at 1.
-        double factor = 1.7; // change this factor, this might have a significant influence on pattern
+        double factor = 1.8; // change this factor, this might have a significant influence on pattern
         double scaledMagnitude = magnitude * factor;
 
         scaledMagnitude = Math.min(1.0, scaledMagnitude);
