@@ -16,6 +16,7 @@ import android.media.AudioTrack;
 import android.media.MediaRecorder;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -219,6 +220,68 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+//        gatherDataButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                trackButton.setEnabled(false);
+//                specButton.setEnabled(false);
+//                gatherDataButton.setEnabled(false);
+//                cellSelect.setEnabled(false);
+//                positionButton.setEnabled(false);
+//
+//                // Define the delay between iterations (in milliseconds)
+//                final int delay = 50;
+//
+//                final Handler handler = new Handler();
+//                handler.postDelayed(new Runnable() {
+//                    int iteration = 0;
+//
+//                    @Override
+//                    public void run() {
+//                        // Inside this run() method, place the code you want to execute after the delay
+//
+//                        if (iteration < SAMPLE_SIZE) {
+//                            // Your existing code goes here
+//                            CHIRP_SIGNAL = generateChirpSignal();
+//                            CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
+//                            FILE_NAME = generateFileName();
+//                            FILE_NAME_2 = generateFileName2();
+//                            FILE_NAME_CELL = generateFileNameCell();
+//                            FILE_NAME_CELL2 = generateFileNameCell2();
+//                            recordAudio(RECORDING_DURATION);
+//                            INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
+//                            extractAudioSegmentIndex();
+//                            Bitmap plot = plotSpectrogram();
+//                            spectrogramFull.setImageBitmap(plot);
+//                            Bitmap plot2 = plotSpectrogram2();
+//                            spectrogramExtract.setImageBitmap(plot2);
+//                            Bitmap plot3 = plotSpectrogram3();
+//                            spectrogramSmallExtract.setImageBitmap(plot3);
+//                            Bitmap plotSave = plotSpectrogramSave();
+//                            File file = new File(generateFilePathCell());
+//                            try {
+//                                FileOutputStream fos = new FileOutputStream(file);
+//                                plotSave.compress(Bitmap.CompressFormat.PNG, 100, fos);
+//                                fos.close();
+//                            } catch (IOException e) {
+//                                e.printStackTrace();
+//                            }
+//
+//                            iteration++;
+//                            handler.postDelayed(this, delay); // Schedule the next iteration after the delay
+//                        } else {
+//                            // The loop has completed all iterations
+//                            trackButton.setEnabled(true);
+//                            specButton.setEnabled(true);
+//                            gatherDataButton.setEnabled(true);
+//                            cellSelect.setEnabled(true);
+//                            positionButton.setEnabled(true);
+//                        }
+//                    }
+//                }, delay);
+//            }
+//        });
+
         gatherDataButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -231,15 +294,12 @@ public class MainActivity extends AppCompatActivity {
                 // Define the delay between iterations (in milliseconds)
                 final int delay = 50;
 
-                final Handler handler = new Handler();
-                handler.postDelayed(new Runnable() {
+                new AsyncTask<Void, Bitmap, Void>() {
                     int iteration = 0;
 
                     @Override
-                    public void run() {
-                        // Inside this run() method, place the code you want to execute after the delay
-
-                        if (iteration < SAMPLE_SIZE) {
+                    protected Void doInBackground(Void... params) {
+                        while (iteration < SAMPLE_SIZE) {
                             // Your existing code goes here
                             CHIRP_SIGNAL = generateChirpSignal();
                             CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
@@ -251,11 +311,8 @@ public class MainActivity extends AppCompatActivity {
                             INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
                             extractAudioSegmentIndex();
                             Bitmap plot = plotSpectrogram();
-                            spectrogramFull.setImageBitmap(plot);
                             Bitmap plot2 = plotSpectrogram2();
-                            spectrogramExtract.setImageBitmap(plot2);
                             Bitmap plot3 = plotSpectrogram3();
-                            spectrogramSmallExtract.setImageBitmap(plot3);
                             Bitmap plotSave = plotSpectrogramSave();
                             File file = new File(generateFilePathCell());
                             try {
@@ -266,20 +323,39 @@ public class MainActivity extends AppCompatActivity {
                                 e.printStackTrace();
                             }
 
+                            publishProgress(plot, plot2, plot3);
+
                             iteration++;
-                            handler.postDelayed(this, delay); // Schedule the next iteration after the delay
-                        } else {
-                            // The loop has completed all iterations
-                            trackButton.setEnabled(true);
-                            specButton.setEnabled(true);
-                            gatherDataButton.setEnabled(true);
-                            cellSelect.setEnabled(true);
-                            positionButton.setEnabled(true);
+
+                            try {
+                                Thread.sleep(delay);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
                         }
+                        return null;
                     }
-                }, delay);
+
+                    @Override
+                    protected void onProgressUpdate(Bitmap... values) {
+                        spectrogramFull.setImageBitmap(values[0]);
+                        spectrogramExtract.setImageBitmap(values[1]);
+                        spectrogramSmallExtract.setImageBitmap(values[2]);
+                    }
+
+                    @Override
+                    protected void onPostExecute(Void aVoid) {
+                        trackButton.setEnabled(true);
+                        specButton.setEnabled(true);
+                        gatherDataButton.setEnabled(true);
+                        cellSelect.setEnabled(true);
+                        positionButton.setEnabled(true);
+                    }
+                }.execute();
             }
         });
+
+
 
         // This positionButton is the button which should be focused on, as it performs the location detection
         // so far, the method applied is using RSS to decide which model to activate CNN "West" or CNN "East"
