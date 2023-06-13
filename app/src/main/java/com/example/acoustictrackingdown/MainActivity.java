@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int WINDOW_SIZE = 256;
     private static final int OVERLAP = 128;
     private static final int FFT_SIZE = WINDOW_SIZE;
-    private static final int SAMPLE_SIZE = 50;
+    private static final int SAMPLE_SIZE = 25;
     private static double[] SPECTRAL_CONTRAST = null;
     private ImageClassifier mImageClassifier;
     private String CNN_MODEL = "model_android_06.09_C1_C9.ptl";
@@ -229,7 +229,7 @@ public class MainActivity extends AppCompatActivity {
                 positionButton.setEnabled(false);
 
                 // Define the delay between iterations (in milliseconds)
-                final int delay = 1500;
+                final int delay = 50;
 
                 final Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
@@ -1279,7 +1279,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static int getGray2ColorFromMagnitude(double magnitude) {
         // scale the magnitude up a bit, but cap it at 1.
-        double factor = 2.4;
+        double factor = 1.0;
         double scaledMagnitude = magnitude * factor;
 
         scaledMagnitude = Math.min(1.0, scaledMagnitude);
@@ -1294,7 +1294,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static int getGrayTestColorFromMagnitude(double magnitude) {
         // scale the magnitude up a bit, but cap it at 1.
-        double factor = 1.8; // change this factor, this might have a significant influence on pattern
+        double factor = 1.0; // change this factor, this might have a significant influence on pattern
         double scaledMagnitude = magnitude * factor;
 
         scaledMagnitude = Math.min(1.0, scaledMagnitude);
