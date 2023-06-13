@@ -288,64 +288,73 @@ public class MainActivity extends AppCompatActivity {
         positionButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                TESTING_POINT = createPointFromScan("Test");
-                if (TESTING_POINT == null) {
-                    Toast.makeText(getApplicationContext(), "Please press the button again", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                String res = KNN_EAST_WEST.classifyLocation(TESTING_POINT);
-                Toast.makeText(getApplicationContext(), "We are at: " + res, Toast.LENGTH_SHORT).show();
-                CHIRP_SIGNAL = generateChirpSignal();
-                CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
-                FILE_NAME = generateFileName();
-                FILE_NAME_2 = generateFileName2();
-                FILE_NAME_3 = generateFileNameTest();
-                FILE_NAME_CELL2 = "Track" + ".csv";
-                recordAudio(RECORDING_DURATION);
-                INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
-                extractAudioSegmentIndex();
-                Bitmap plot = plotSpectrogram();
-                spectrogramFull.setImageBitmap(plot);
-                Bitmap plot2 = plotSpectrogram2();
-                spectrogramExtract.setImageBitmap(plot2);
-                Bitmap plot3 = plotSpectrogram3();
-                spectrogramSmallExtract.setImageBitmap(plot3);
-                Bitmap plotSave = plotSpectrogramSave();
-                Bitmap plotTest = plotSpectrogramTest();
-                // Save the bitmap to a file
-                File file = new File(generateFilePathTest());
-                try {
-                    FileOutputStream fos = new FileOutputStream(file);
-                    plotSave.compress(Bitmap.CompressFormat.PNG, 100, fos); // Adjust the compression quality as needed
-                    fos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                // Then apply the model here to determine position
-                int predictedClassIndex = mImageClassifier.classifyImage(plotTest);
-                // Return the predicted class
+                // this is for the purpose of cleaning up the previous data saved
+                TESTING_POINT = createPointFromScan("Initialize");
+                Toast.makeText(getApplicationContext(), "Precise WIFI localization activated", Toast.LENGTH_SHORT).show();
+                // pause for 3.5 seconds
+                new Handler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        TESTING_POINT = createPointFromScan("Test");
+                        if (TESTING_POINT == null) {
+                            Toast.makeText(getApplicationContext(), "Please press the button again", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        String res = KNN_EAST_WEST.classifyLocation(TESTING_POINT);
+                        Toast.makeText(getApplicationContext(), "We are at: " + res, Toast.LENGTH_SHORT).show();
+                        CHIRP_SIGNAL = generateChirpSignal();
+                        CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
+                        FILE_NAME = generateFileName();
+                        FILE_NAME_2 = generateFileName2();
+                        FILE_NAME_3 = generateFileNameTest();
+                        FILE_NAME_CELL2 = "Track" + ".csv";
+                        recordAudio(RECORDING_DURATION);
+                        INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
+                        extractAudioSegmentIndex();
+                        Bitmap plot = plotSpectrogram();
+                        spectrogramFull.setImageBitmap(plot);
+                        Bitmap plot2 = plotSpectrogram2();
+                        spectrogramExtract.setImageBitmap(plot2);
+                        Bitmap plot3 = plotSpectrogram3();
+                        spectrogramSmallExtract.setImageBitmap(plot3);
+                        Bitmap plotSave = plotSpectrogramSave();
+                        Bitmap plotTest = plotSpectrogramTest();
+                        // Save the bitmap to a file
+                        File file = new File(generateFilePathTest());
+                        try {
+                            FileOutputStream fos = new FileOutputStream(file);
+                            plotSave.compress(Bitmap.CompressFormat.PNG, 100, fos); // Adjust the compression quality as needed
+                            fos.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        // Then apply the model here to determine position
+                        int predictedClassIndex = mImageClassifier.classifyImage(plotTest);
+                        // Return the predicted class
 //                Toast.makeText(getApplicationContext(), "Class is: " + predictedClassIndex, Toast.LENGTH_SHORT).show();
-                int compensateFloor = 0;
-                String result = "C" + predictedClassIndex;
-                if (predictedClassIndex == 4 | predictedClassIndex == 5 | predictedClassIndex == 6) {
-                    String res2 = KNN_FLOORS.classifyLocation(TESTING_POINT);
-                    if (Objects.equals(res2, "floor1")) {
-                        compensateFloor = 6;
-                    } else if (Objects.equals(res2, "floor2")) {
-                        compensateFloor = 5;
-                    } else {
-                        compensateFloor = 4;
+                        int compensateFloor = 0;
+                        String result = "C" + predictedClassIndex;
+                        if (predictedClassIndex == 4 | predictedClassIndex == 5 | predictedClassIndex == 6) {
+                            String res2 = KNN_FLOORS.classifyLocation(TESTING_POINT);
+                            if (Objects.equals(res2, "floor1")) {
+                                compensateFloor = 6;
+                            } else if (Objects.equals(res2, "floor2")) {
+                                compensateFloor = 5;
+                            } else {
+                                compensateFloor = 4;
+                            }
+                            Toast.makeText(getApplicationContext(), "We are at: " + res2 + " || " + "Cell: " + compensateFloor, Toast.LENGTH_SHORT).show();
+                            result = "C" + compensateFloor;
+                        }
+                        location.setText(result);
+                        gatherDataButton.setEnabled(true);
+                        cellSelect.setEnabled(true);
+                        trackButton.setEnabled(true);
+                        specButton.setEnabled(true);
+                        positionButton.setEnabled(true);
+                        TESTING_POINT = null;
                     }
-                    Toast.makeText(getApplicationContext(), "We are at: " + res2 + " || " + "Cell: " + compensateFloor, Toast.LENGTH_SHORT).show();
-                    result = "C" + compensateFloor;
-                }
-                location.setText(result);
-                gatherDataButton.setEnabled(true);
-                cellSelect.setEnabled(true);
-                trackButton.setEnabled(true);
-                specButton.setEnabled(true);
-                positionButton.setEnabled(true);
-                TESTING_POINT = null;
+                }, 3500);
             }
         });
     }
