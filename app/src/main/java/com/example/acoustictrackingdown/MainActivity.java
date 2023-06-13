@@ -520,6 +520,14 @@ public class MainActivity extends AppCompatActivity {
 
             CHIRP_AUDIO.play();
 
+            // Delay for duration of chirp signal
+            int Chirp_guarantee_MS = 10;
+            try {
+                Thread.sleep(Chirp_guarantee_MS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
             int totalSamplesRead = 0;
             while (totalSamplesRead < numSamples) {
                 int numRead = recorder.read(buffer, totalSamplesRead, numSamples - totalSamplesRead);
