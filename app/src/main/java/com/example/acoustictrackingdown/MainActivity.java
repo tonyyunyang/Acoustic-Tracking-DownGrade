@@ -65,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int WINDOW_SIZE = 256;
     private static final int OVERLAP = 128;
     private static final int FFT_SIZE = WINDOW_SIZE;
-    private static final int SAMPLE_SIZE = 200;
+    private static final int SAMPLE_SIZE = 5;
     private static double[] SPECTRAL_CONTRAST = null;
     private ImageClassifier mImageClassifier;
     @Override
@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
         spectrogramFull = (ImageView) findViewById(R.id.Spectrogram_Full);
         spectrogramExtract = (ImageView) findViewById(R.id.extracted_spectrogram);
         spectrogramSmallExtract = (ImageView) findViewById(R.id.f_extracted_spectrogram);
-        mImageClassifier = new ImageClassifier(MainActivity.this, "model_android_06.09_C1_C9.ptl");
+        mImageClassifier = new ImageClassifier(MainActivity.this, "model.ptl");
 
         cellSelect = (Spinner) findViewById(R.id.cell_selector);
         ArrayList<String> items = new ArrayList<>();

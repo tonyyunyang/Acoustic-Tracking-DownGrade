@@ -11,7 +11,6 @@ import org.pytorch.LiteModuleLoader;
 import org.pytorch.Module;
 import org.pytorch.Tensor;
 import org.pytorch.torchvision.TensorImageUtils;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -27,10 +26,10 @@ public class ImageClassifier {
 
     public int classifyImage(Bitmap image) {
         // Preprocess the image
+//        float[] mean = {0.792199f, 0.792199f, 0.792199f};
+//        float[] std = {0.25773534f, 0.25773534f, 0.25773534f};
         Tensor inputTensor = TensorImageUtils.bitmapToFloat32Tensor(image,
-                TensorImageUtils.TORCHVISION_NORM_MEAN_RGB,
-                TensorImageUtils.TORCHVISION_NORM_STD_RGB);
-//        Tensor inputTensor = TensorImage.fromBitmap(image);
+                TensorImageUtils.TORCHVISION_NORM_MEAN_RGB, TensorImageUtils.TORCHVISION_NORM_STD_RGB);
 
         // Run inference
         Tensor outputTensor = mModule.forward(IValue.from(inputTensor)).toTensor();
@@ -47,9 +46,9 @@ public class ImageClassifier {
         }
 
         StringBuilder scoresStr = new StringBuilder();
-        for(int i = 0; i < scores.length; i++) {
-            scoresStr.append("Score ").append(i).append(": ").append(scores[i]);
-            if (i != scores.length - 1) {  // Don't add a comma after the last score
+        for(int j = 0; j < scores.length; j++) {
+            scoresStr.append("Score ").append((j+1)).append(": ").append(scores[j]);
+            if (j != scores.length - 1) {  // Don't add a comma after the last score
                 scoresStr.append(", ");
             }
         }
