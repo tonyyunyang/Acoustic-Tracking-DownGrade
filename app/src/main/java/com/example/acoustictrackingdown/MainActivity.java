@@ -78,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int SAMPLE_SIZE = 25;
     private static double[] SPECTRAL_CONTRAST = null;
     private ImageClassifier mImageClassifier;
-    private String CNN_MODEL = "model_android_06.09_C1_C9.ptl";
+    private String CNN_MODEL = "model_android.ptl";
     private ArrayList<Point> WEST_EAST_RSS = new ArrayList<>(); // dataset for distinguishing east and west
     private ArrayList<Point> FLOOR_RSS = new ArrayList<>(); // dataset for distinguishing floor1, floor2 and floor3 (cell4, 5, 6)
     private Point TESTING_POINT = null;
@@ -88,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSIONS_REQUEST_CODE = 123;
     private KNN KNN_EAST_WEST = null;
     private KNN KNN_FLOORS = null;
-    private static final int KNN_EAST_WEST_K_SIZE = 3;
+    private static final int KNN_EAST_WEST_K_SIZE = 7;
     private static final int KNN_FLOORS_K_SIZE = 3;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -377,7 +377,10 @@ public class MainActivity extends AppCompatActivity {
                             return;
                         }
                         String res = KNN_EAST_WEST.classifyLocation(TESTING_POINT);
-                        Toast.makeText(getApplicationContext(), "We are at: " + res, Toast.LENGTH_SHORT).show();
+                        // Checking if res is between C1 and C10
+                        int resInt = Integer.parseInt(res.substring(1)); // Assuming res is always in format "Cxx"
+                        String eastWest = (resInt >= 1 && resInt <= 10) ? "west" : "east";
+                        Toast.makeText(getApplicationContext(), "We are at: " + eastWest, Toast.LENGTH_SHORT).show();
                         CHIRP_SIGNAL = generateChirpSignal();
                         CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
                         FILE_NAME = generateFileName();
@@ -412,14 +415,14 @@ public class MainActivity extends AppCompatActivity {
                         String result = "C" + predictedClassIndex;
                         if (predictedClassIndex == 4 | predictedClassIndex == 5 | predictedClassIndex == 6) {
                             String res2 = KNN_FLOORS.classifyLocation(TESTING_POINT);
-                            if (Objects.equals(res2, "floor1")) {
+                            if (Objects.equals(res2, "C6")) {
                                 compensateFloor = 6;
-                            } else if (Objects.equals(res2, "floor2")) {
+                            } else if (Objects.equals(res2, "C5")) {
                                 compensateFloor = 5;
                             } else {
                                 compensateFloor = 4;
                             }
-                            Toast.makeText(getApplicationContext(), "We are at: " + res2 + " || " + "Cell: " + compensateFloor, Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getApplicationContext(), "We are at: " + " Cell " + compensateFloor, Toast.LENGTH_SHORT).show();
                             result = "C" + compensateFloor;
                         }
                         location.setText(result);
