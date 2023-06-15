@@ -76,7 +76,7 @@
         android:id="@+id/gatherData"
         android:layout_width="221dp"
         android:layout_height="57dp"
-        android:layout_marginStart="84dp"
+        android:layout_marginStart="28dp"
         android:layout_marginBottom="408dp"
         android:text="Gather cell ____ data"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -96,8 +96,8 @@
         android:id="@+id/positioning"
         android:layout_width="206dp"
         android:layout_height="64dp"
-        android:layout_marginStart="96dp"
-        android:layout_marginBottom="344dp"
+        android:layout_marginStart="28dp"
+        android:layout_marginBottom="340dp"
         android:text="Track"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
@@ -106,10 +106,30 @@
         android:id="@+id/textView"
         android:layout_width="85dp"
         android:layout_height="41dp"
-        android:layout_marginStart="160dp"
-        android:layout_marginBottom="300dp"
+        android:layout_marginStart="28dp"
+        android:layout_marginBottom="288dp"
         android:text="C__"
         android:textSize="24sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Switch
+        android:id="@+id/doubleCNN"
+        android:layout_width="118dp"
+        android:layout_height="56dp"
+        android:layout_marginStart="264dp"
+        android:layout_marginBottom="348dp"
+        android:text="Duo CNN"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Switch
+        android:id="@+id/RSSKNN"
+        android:layout_width="118dp"
+        android:layout_height="56dp"
+        android:layout_marginStart="264dp"
+        android:layout_marginBottom="408dp"
+        android:text="RSS + KNN"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
