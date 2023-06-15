@@ -7,6 +7,7 @@ import android.Manifest;
 
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.media.AudioFormat;
@@ -42,6 +43,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
+import ai.onnxruntime.OrtEnvironment;
+import ai.onnxruntime.OrtException;
+
 public class MainActivity extends AppCompatActivity {
     private Button specButton, trackButton, gatherDataButton, positionButton;
     private Spinner cellSelect;
@@ -68,6 +72,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int SAMPLE_SIZE = 5;
     private static double[] SPECTRAL_CONTRAST = null;
     private ImageClassifier mImageClassifier;
+    OrtEnvironment env;
+    AssetManager assetManager;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,7 +87,16 @@ public class MainActivity extends AppCompatActivity {
         spectrogramFull = (ImageView) findViewById(R.id.Spectrogram_Full);
         spectrogramExtract = (ImageView) findViewById(R.id.extracted_spectrogram);
         spectrogramSmallExtract = (ImageView) findViewById(R.id.f_extracted_spectrogram);
-        mImageClassifier = new ImageClassifier(MainActivity.this, "model.ptl");
+        assetManager = getApplicationContext().getAssets();
+        env = OrtEnvironment.getEnvironment();
+        try {
+            mImageClassifier = new ImageClassifier(MainActivity.this, "new_model_architecture.onnx", env);
+        } catch (OrtException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
 
         cellSelect = (Spinner) findViewById(R.id.cell_selector);
         ArrayList<String> items = new ArrayList<>();
@@ -275,10 +290,16 @@ public class MainActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
                 // Then apply the model here to determine position
-                int predictedClassIndex = mImageClassifier.classifyImage(plotTest);
+                int[] predictedClassesIndex = new int[0];
+                try {
+                    predictedClassesIndex = mImageClassifier.classifyImage(plotTest, env);
+                } catch (OrtException e) {
+                    throw new RuntimeException(e);
+                }
                 // Return the predicted class
-                Toast.makeText(getApplicationContext(), "Class is: " + predictedClassIndex, Toast.LENGTH_SHORT).show();
-                String result = "C" + predictedClassIndex;
+                Toast.makeText(getApplicationContext(), "Classes are: " + predictedClassesIndex[0] + ", "
+                        + predictedClassesIndex[1] + ", " + predictedClassesIndex[2] + ", ", Toast.LENGTH_SHORT).show();
+                String result = "C" + predictedClassesIndex[0] + " C" + predictedClassesIndex[1] + " C" + predictedClassesIndex[2];
                 location.setText(result);
                 gatherDataButton.setEnabled(true);
                 cellSelect.setEnabled(true);
@@ -1209,7 +1230,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static int getGray2ColorFromMagnitude(double magnitude) {
         // scale the magnitude up a bit, but cap it at 1.
-        double factor = 2.4;
+        double factor = 1.0;
         double scaledMagnitude = magnitude * factor;
 
         scaledMagnitude = Math.min(1.0, scaledMagnitude);
@@ -1224,7 +1245,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static int getGrayTestColorFromMagnitude(double magnitude) {
         // scale the magnitude up a bit, but cap it at 1.
-        double factor = 1.5; // change this factor, this might have a significant influence on pattern
+        double factor = 1.0; // change this factor, this might have a significant influence on pattern
         double scaledMagnitude = magnitude * factor;
 
         scaledMagnitude = Math.min(1.0, scaledMagnitude);
@@ -1239,7 +1260,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static int getPlasmaColorFromMagnitude(double magnitude) {
         // scale the magnitude up a bit, but cap it at 1.
-        double factor = 50;
+        double factor = 10;
         double scaledMagnitude = magnitude * factor;
 
 //        scaledMagnitude = Math.min(1.0, scaledMagnitude);
