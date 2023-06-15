@@ -88,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSIONS_REQUEST_CODE = 123;
     private KNN KNN_EAST_WEST = null;
     private KNN KNN_FLOORS = null;
-    private static final int KNN_EAST_WEST_K_SIZE = 7;
+    private static final int KNN_EAST_WEST_K_SIZE = 5;
     private static final int KNN_FLOORS_K_SIZE = 3;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
