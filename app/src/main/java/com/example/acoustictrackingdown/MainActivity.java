@@ -97,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSIONS_REQUEST_CODE = 123;
     private KNN KNN_EAST_WEST = null;
     private KNN KNN_FLOORS = null;
-    private static final int KNN_EAST_WEST_K_SIZE = 5;
+    private static final int KNN_EAST_WEST_K_SIZE = 7;
     private static final int KNN_FLOORS_K_SIZE = 3;
     private Handler mEastWest;
     private Runnable mRunnableEastWest;
@@ -156,28 +156,31 @@ public class MainActivity extends AppCompatActivity {
         mRunnableEastWest = new Runnable() {
             @Override
             public void run() {
-                try {
-                    // Your function here.
-                    TESTING_POINT = createPointFromScan("Test");
-                    SAVING_POINT = TESTING_POINT;
-                    if (TESTING_POINT == null) {
-                        return;
+                synchronized (this) {
+                    try {
+                        // Your function here.
+                        TESTING_POINT = createPointFromScan("Test");
+                        SAVING_POINT = TESTING_POINT;
+                        if (TESTING_POINT == null) {
+                            return;
+                        }
+                        String res = KNN_EAST_WEST.classifyLocation(TESTING_POINT);
+                        // Checking if res is between C1 and C10
+                        int resInt = Integer.parseInt(res.substring(1)); // Assuming res is always in format "Cxx"
+                        WestEast = (resInt >= 1 && resInt <= 10) ? "west" : "east";
+                        buildingSide.setText("At " + WestEast);
+                    } catch (Exception e) {
+                        // Log the exception.
+                        Log.e("Runnable", "Exception in Runnable", e);
+                    } finally {
+                        //                    Toast.makeText(getApplicationContext(), "Here again", Toast.LENGTH_SHORT).show();
+                        mEastWest.postDelayed(this, 2000); // Run this Runnable again after 3 seconds.
+                        TESTING_POINT = null;
                     }
-                    String res = KNN_EAST_WEST.classifyLocation(TESTING_POINT);
-                    // Checking if res is between C1 and C10
-                    int resInt = Integer.parseInt(res.substring(1)); // Assuming res is always in format "Cxx"
-                    WestEast = (resInt >= 1 && resInt <= 10) ? "west" : "east";
-                    buildingSide.setText("At " + WestEast);
-                } catch (Exception e) {
-                    // Log the exception.
-                    Log.e("Runnable", "Exception in Runnable", e);
-                } finally {
-//                    Toast.makeText(getApplicationContext(), "Here again", Toast.LENGTH_SHORT).show();
-                    mEastWest.postDelayed(this, 4000); // Run this Runnable again after 3 seconds.
-                    TESTING_POINT = null;
                 }
             }
         };
+
 
         // Start the Runnable immediately.
         mEastWest.post(mRunnableEastWest);
@@ -500,6 +503,7 @@ public class MainActivity extends AppCompatActivity {
                         if (Objects.equals(WestEast, "west")) {
                             predictedClassIndex = CNN_C1_C9.classifyImage(plotTest);
                         }else {
+                            predictedClassIndex = CNN_C11_C16.classifyImage(plotTest);
                             for (int i = 0; i < predictedClassIndex.length; i++) {
                                 predictedClassIndex[i] += 10;
                             }
@@ -508,7 +512,7 @@ public class MainActivity extends AppCompatActivity {
                     // Return the predicted class
 //                Toast.makeText(getApplicationContext(), "Class is: " + predictedClassIndex, Toast.LENGTH_SHORT).show();
                     int compensateFloor = 0;
-                    String result = "C" + predictedClassIndex;
+                    String result = "1st: " + "C" + predictedClassIndex[0] + " 2nd: " + "C" + predictedClassIndex[1] + " 3rd: " + "C" + predictedClassIndex[2];
                     if (predictedClassIndex[0] == 4 | predictedClassIndex[0] == 5 | predictedClassIndex[0] == 6) {
                         String res2 = KNN_FLOORS.classifyLocation(SAVING_POINT);
                         if (Objects.equals(res2, "C6")) {
@@ -1779,7 +1783,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Check if the result is same as the previous result
         if(resultFileBuilder.toString().equals(previousResult)) {
-            Toast.makeText(this, "WIFI scan still frozen", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Wifi updating, please ignore and continue", Toast.LENGTH_SHORT).show();
             return null;
         } else {
             previousResult = resultFileBuilder.toString();
