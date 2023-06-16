@@ -26,24 +26,66 @@ public class ImageClassifier {
         mModule = LiteModuleLoader.load(assetFilePath(context, modelPath));
     }
 
-    public int classifyImage(Bitmap image) {
+//    public int classifyImage(Bitmap image) {
+//        // Preprocess the image
+//        Tensor inputTensor = TensorImageUtils.bitmapToFloat32Tensor(image,
+//                TensorImageUtils.TORCHVISION_NORM_MEAN_RGB,
+//                TensorImageUtils.TORCHVISION_NORM_STD_RGB);
+////        Tensor inputTensor = TensorImage.fromBitmap(image);
+//
+//        // Run inference
+//        Tensor outputTensor = mModule.forward(IValue.from(inputTensor)).toTensor();
+//
+//        // Get the predicted class index
+//        float[] scores = outputTensor.getDataAsFloatArray();
+//        int maxIndex = -1;
+//        float maxScore = -Float.MAX_VALUE;
+//        for (int i = 0; i < scores.length; i++) {
+//            if (scores[i] > maxScore) {
+//                maxIndex = i + 1;
+//                maxScore = scores[i];
+//            }
+//        }
+//
+//        StringBuilder scoresStr = new StringBuilder();
+//        for(int i = 0; i < scores.length; i++) {
+//            scoresStr.append("Score ").append(i).append(": ").append(scores[i]);
+//            if (i != scores.length - 1) {  // Don't add a comma after the last score
+//                scoresStr.append(", ");
+//            }
+//        }
+//        // Log the scores and the number of scores
+//        Log.i(TAG, scoresStr.toString() + ", number of scores: " + scores.length);
+//
+//        return maxIndex;
+//    }
+
+    public int[] classifyImage(Bitmap image) {
         // Preprocess the image
         Tensor inputTensor = TensorImageUtils.bitmapToFloat32Tensor(image,
                 TensorImageUtils.TORCHVISION_NORM_MEAN_RGB,
                 TensorImageUtils.TORCHVISION_NORM_STD_RGB);
-//        Tensor inputTensor = TensorImage.fromBitmap(image);
 
         // Run inference
         Tensor outputTensor = mModule.forward(IValue.from(inputTensor)).toTensor();
 
-        // Get the predicted class index
+        // Get the predicted class indices and scores
         float[] scores = outputTensor.getDataAsFloatArray();
-        int maxIndex = -1;
-        float maxScore = -Float.MAX_VALUE;
+        int[] maxIndices = {-1, -1, -1};
+        float[] maxScores = {-Float.MAX_VALUE, -Float.MAX_VALUE, -Float.MAX_VALUE};
+
         for (int i = 0; i < scores.length; i++) {
-            if (scores[i] > maxScore) {
-                maxIndex = i + 1;
-                maxScore = scores[i];
+            for (int j = 0; j < 3; j++) {
+                if (scores[i] > maxScores[j]) {
+                    // shift remaining scores
+                    for (int k = 2; k > j; k--) {
+                        maxScores[k] = maxScores[k - 1];
+                        maxIndices[k] = maxIndices[k - 1];
+                    }
+                    maxScores[j] = scores[i];
+                    maxIndices[j] = i + 1;
+                    break;
+                }
             }
         }
 
@@ -57,8 +99,9 @@ public class ImageClassifier {
         // Log the scores and the number of scores
         Log.i(TAG, scoresStr.toString() + ", number of scores: " + scores.length);
 
-        return maxIndex;
+        return maxIndices;
     }
+
 
     public static String assetFilePath(Context context, String assetName) {
         File file = new File(context.getFilesDir(), assetName);

@@ -451,11 +451,11 @@ public class MainActivity extends AppCompatActivity {
                     }
                     // Then apply the model here to determine position
 //                        int predictedClassIndex = mImageClassifier.classifyImage(plotTest);
-                    int predictedClassIndex = 0;
+                    int[] predictedClassIndex = {-1, -1, -1};
                     predictedClassIndex = CNN_C1_C16.classifyImage(plotTest);
                     // Return the predicted class
-                    Toast.makeText(getApplicationContext(), "We are at: " + " Cell " + predictedClassIndex, Toast.LENGTH_SHORT).show();
-                    String result = "C" + predictedClassIndex;
+                    Toast.makeText(getApplicationContext(), "Most likely at: " + " Cell " + predictedClassIndex[0], Toast.LENGTH_SHORT).show();
+                    String result = "1st: " + "C" + predictedClassIndex[0] + " 2nd: " + "C" + predictedClassIndex[1] + " 3rd: " + "C" + predictedClassIndex[2];
                     location.setText(result);
                     gatherDataButton.setEnabled(true);
                     cellSelect.setEnabled(true);
@@ -493,21 +493,23 @@ public class MainActivity extends AppCompatActivity {
                     }
                     // Then apply the model here to determine position
 //                        int predictedClassIndex = mImageClassifier.classifyImage(plotTest);
-                    int predictedClassIndex = 0;
+                    int[] predictedClassIndex = {-1, -1, -1};
                     if (!duoCNN.isChecked()) {
                         predictedClassIndex = CNN_C1_C16.classifyImage(plotTest);
                     }else {
                         if (Objects.equals(WestEast, "west")) {
                             predictedClassIndex = CNN_C1_C9.classifyImage(plotTest);
                         }else {
-                            predictedClassIndex = CNN_C11_C16.classifyImage(plotTest) + 10;
+                            for (int i = 0; i < predictedClassIndex.length; i++) {
+                                predictedClassIndex[i] += 10;
+                            }
                         }
                     }
                     // Return the predicted class
 //                Toast.makeText(getApplicationContext(), "Class is: " + predictedClassIndex, Toast.LENGTH_SHORT).show();
                     int compensateFloor = 0;
                     String result = "C" + predictedClassIndex;
-                    if (predictedClassIndex == 4 | predictedClassIndex == 5 | predictedClassIndex == 6) {
+                    if (predictedClassIndex[0] == 4 | predictedClassIndex[0] == 5 | predictedClassIndex[0] == 6) {
                         String res2 = KNN_FLOORS.classifyLocation(SAVING_POINT);
                         if (Objects.equals(res2, "C6")) {
                             compensateFloor = 6;
@@ -516,8 +518,9 @@ public class MainActivity extends AppCompatActivity {
                         } else {
                             compensateFloor = 4;
                         }
-                        Toast.makeText(getApplicationContext(), "We are at: " + " Cell " + compensateFloor, Toast.LENGTH_SHORT).show();
                         result = "C" + compensateFloor;
+                        Toast.makeText(getApplicationContext(), "Most likely at: " + " Cell " + compensateFloor, Toast.LENGTH_SHORT).show();
+                        result = "1st: " + "C" + compensateFloor + " 2nd: " + "C" + predictedClassIndex[1] + " 3rd: " + "C" + predictedClassIndex[2];
                     }
                     location.setText(result);
                     gatherDataButton.setEnabled(true);
