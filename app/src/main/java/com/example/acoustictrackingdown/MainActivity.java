@@ -83,9 +83,9 @@ public class MainActivity extends AppCompatActivity {
     private ImageClassifier CNN_C1_C16;
     private ImageClassifier CNN_C1_C9;
     private ImageClassifier CNN_C11_C16;
-    private String CNN_MODEL = "new_model_10_cells.ptl";
-    private String CNN_MODEL_ONE = "new_model_9_cells.ptl";
-    private String CNN_MODEL_TWO = "new_model_11-16_cells.ptl";
+    private String CNN_MODEL = "model_android.ptl";
+    private String CNN_MODEL_ONE = "model_android_9_cells.ptl";
+    private String CNN_MODEL_TWO = "model_android_11_16_cells.ptl";
     private ArrayList<Point> WEST_EAST_RSS = new ArrayList<>(); // dataset for distinguishing east and west
     private ArrayList<Point> FLOOR_RSS = new ArrayList<>(); // dataset for distinguishing floor1, floor2 and floor3 (cell4, 5, 6)
     private Point TESTING_POINT = null;
@@ -478,7 +478,7 @@ public class MainActivity extends AppCompatActivity {
                                 if (Objects.equals(eastWest, "west")) {
                                     predictedClassIndex = CNN_C1_C9.classifyImage(plotTest);
                                 }else {
-                                    predictedClassIndex = CNN_C11_C16.classifyImage(plotTest);
+                                    predictedClassIndex = CNN_C11_C16.classifyImage(plotTest) + 10;
                                 }
                             }
                             // Return the predicted class
