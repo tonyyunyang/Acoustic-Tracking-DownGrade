@@ -20,6 +20,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -59,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private Switch duoCNN, RSSKNN;
     private Spinner cellSelect;
     private ImageView spectrogramFull, spectrogramExtract, spectrogramSmallExtract, buildingMap;
-    private TextView location;
+    private TextView location, buildingSide;
     private static String cell = "Not_defined_yet";
     private static String FILE_NAME = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + ".pcm"; // File name with current date and time
     private static String FILE_NAME_2 = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) + "_processed" + ".pcm"; // File name with current date and time
@@ -83,12 +84,13 @@ public class MainActivity extends AppCompatActivity {
     private ImageClassifier CNN_C1_C16;
     private ImageClassifier CNN_C1_C9;
     private ImageClassifier CNN_C11_C16;
-    private String CNN_MODEL = "model_android.ptl";
+    private String CNN_MODEL_ALL = "model_android.ptl";
     private String CNN_MODEL_ONE = "model_android_9_cells.ptl";
     private String CNN_MODEL_TWO = "model_android_11_16_cells.ptl";
     private ArrayList<Point> WEST_EAST_RSS = new ArrayList<>(); // dataset for distinguishing east and west
     private ArrayList<Point> FLOOR_RSS = new ArrayList<>(); // dataset for distinguishing floor1, floor2 and floor3 (cell4, 5, 6)
     private Point TESTING_POINT = null;
+    private Point SAVING_POINT = null;
     private final List<String> ALLOWED_SSIDS = Arrays.asList("TUD-facility", "tudelft-dastud", "eduroam");
     private String previousResult = "";  // to store the previous result
     private WifiManager wifiManager;
@@ -97,12 +99,17 @@ public class MainActivity extends AppCompatActivity {
     private KNN KNN_FLOORS = null;
     private static final int KNN_EAST_WEST_K_SIZE = 5;
     private static final int KNN_FLOORS_K_SIZE = 3;
+    private Handler mEastWest;
+    private Runnable mRunnableEastWest;
+    private String WestEast = "Not yet defined";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         buildingMap = (ImageView) findViewById(R.id.map);
         location = (TextView) findViewById(R.id.textView);
+        buildingSide = (TextView) findViewById(R.id.eastwest);
         positionButton = (Button) findViewById(R.id.positioning);
         specButton = (Button) findViewById(R.id.full_spectrogram_button);
         trackButton = (Button) findViewById(R.id.acoustic_button);
@@ -113,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
         duoCNN = (Switch) findViewById(R.id.doubleCNN);
         RSSKNN = (Switch) findViewById(R.id.RSSKNN);
 
-        CNN_C1_C16 = new ImageClassifier(MainActivity.this, CNN_MODEL);
+        CNN_C1_C16 = new ImageClassifier(MainActivity.this, CNN_MODEL_ALL);
         CNN_C1_C9 = new ImageClassifier(MainActivity.this, CNN_MODEL_ONE);
         CNN_C11_C16 = new ImageClassifier(MainActivity.this, CNN_MODEL_TWO);
 
@@ -142,6 +149,38 @@ public class MainActivity extends AppCompatActivity {
 
         // Request necessary permissions
         requestPermissions();
+
+        // Start a thread for WIFI scan
+
+        mEastWest = new Handler(Looper.getMainLooper());
+        mRunnableEastWest = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    // Your function here.
+                    TESTING_POINT = createPointFromScan("Test");
+                    SAVING_POINT = TESTING_POINT;
+                    if (TESTING_POINT == null) {
+                        return;
+                    }
+                    String res = KNN_EAST_WEST.classifyLocation(TESTING_POINT);
+                    // Checking if res is between C1 and C10
+                    int resInt = Integer.parseInt(res.substring(1)); // Assuming res is always in format "Cxx"
+                    WestEast = (resInt >= 1 && resInt <= 10) ? "west" : "east";
+                    buildingSide.setText("At " + WestEast);
+                } catch (Exception e) {
+                    // Log the exception.
+                    Log.e("Runnable", "Exception in Runnable", e);
+                } finally {
+//                    Toast.makeText(getApplicationContext(), "Here again", Toast.LENGTH_SHORT).show();
+                    mEastWest.postDelayed(this, 4000); // Run this Runnable again after 3 seconds.
+                    TESTING_POINT = null;
+                }
+            }
+        };
+
+        // Start the Runnable immediately.
+        mEastWest.post(mRunnableEastWest);
 
         // set listener for the track button
         trackButton.setOnClickListener(new View.OnClickListener() {
@@ -383,7 +422,7 @@ public class MainActivity extends AppCompatActivity {
                 positionButton.setEnabled(false);
 
                 if (!RSSKNN.isChecked()) {
-                    TESTING_POINT = null;
+//                    TESTING_POINT = null;
                     CHIRP_SIGNAL = generateChirpSignal();
                     CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
                     FILE_NAME = generateFileName();
@@ -423,89 +462,150 @@ public class MainActivity extends AppCompatActivity {
                     trackButton.setEnabled(true);
                     specButton.setEnabled(true);
                     positionButton.setEnabled(true);
-                    TESTING_POINT = null;
+//                    TESTING_POINT = null;
 
                 }else {
-                    // this is for the purpose of cleaning up the previous data saved
-                    TESTING_POINT = createPointFromScan("Initialize");
-                    Toast.makeText(getApplicationContext(), "Precise WIFI localization activated", Toast.LENGTH_SHORT).show();
-                    // pause for 3.5 seconds
-                    new Handler().postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            TESTING_POINT = createPointFromScan("Test");
-                            if (TESTING_POINT == null) {
-                                Toast.makeText(getApplicationContext(), "Please press the button again", Toast.LENGTH_SHORT).show();
-                                return;
-                            }
-                            String res = KNN_EAST_WEST.classifyLocation(TESTING_POINT);
-                            // Checking if res is between C1 and C10
-                            int resInt = Integer.parseInt(res.substring(1)); // Assuming res is always in format "Cxx"
-                            String eastWest = (resInt >= 1 && resInt <= 10) ? "west" : "east";
-                            Toast.makeText(getApplicationContext(), "We are at: " + eastWest, Toast.LENGTH_SHORT).show();
-                            CHIRP_SIGNAL = generateChirpSignal();
-                            CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
-                            FILE_NAME = generateFileName();
-                            FILE_NAME_2 = generateFileName2();
-                            FILE_NAME_3 = generateFileNameTest();
-                            FILE_NAME_CELL2 = "Track" + ".csv";
-                            recordAudio(RECORDING_DURATION);
-                            INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
-                            extractAudioSegmentIndex();
-                            Bitmap plot = plotSpectrogram();
-                            spectrogramFull.setImageBitmap(plot);
-                            Bitmap plot2 = plotSpectrogram2();
-                            spectrogramExtract.setImageBitmap(plot2);
-                            Bitmap plot3 = plotSpectrogram3();
-                            spectrogramSmallExtract.setImageBitmap(plot3);
-                            Bitmap plotSave = plotSpectrogramSave();
-                            Bitmap plotTest = plotSpectrogramTest();
-                            // Save the bitmap to a file
-                            File file = new File(generateFilePathTest());
-                            try {
-                                FileOutputStream fos = new FileOutputStream(file);
-                                plotSave.compress(Bitmap.CompressFormat.PNG, 100, fos); // Adjust the compression quality as needed
-                                fos.close();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                            // Then apply the model here to determine position
+                    CHIRP_SIGNAL = generateChirpSignal();
+                    CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
+                    FILE_NAME = generateFileName();
+                    FILE_NAME_2 = generateFileName2();
+                    FILE_NAME_3 = generateFileNameTest();
+                    FILE_NAME_CELL2 = "Track" + ".csv";
+                    recordAudio(RECORDING_DURATION);
+                    INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
+                    extractAudioSegmentIndex();
+                    Bitmap plot = plotSpectrogram();
+                    spectrogramFull.setImageBitmap(plot);
+                    Bitmap plot2 = plotSpectrogram2();
+                    spectrogramExtract.setImageBitmap(plot2);
+                    Bitmap plot3 = plotSpectrogram3();
+                    spectrogramSmallExtract.setImageBitmap(plot3);
+                    Bitmap plotSave = plotSpectrogramSave();
+                    Bitmap plotTest = plotSpectrogramTest();
+                    // Save the bitmap to a file
+                    File file = new File(generateFilePathTest());
+                    try {
+                        FileOutputStream fos = new FileOutputStream(file);
+                        plotSave.compress(Bitmap.CompressFormat.PNG, 100, fos); // Adjust the compression quality as needed
+                        fos.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    // Then apply the model here to determine position
 //                        int predictedClassIndex = mImageClassifier.classifyImage(plotTest);
-                            int predictedClassIndex = 0;
-                            if (!duoCNN.isChecked()) {
-                                predictedClassIndex = CNN_C1_C16.classifyImage(plotTest);
-                            }else {
-                                if (Objects.equals(eastWest, "west")) {
-                                    predictedClassIndex = CNN_C1_C9.classifyImage(plotTest);
-                                }else {
-                                    predictedClassIndex = CNN_C11_C16.classifyImage(plotTest) + 10;
-                                }
-                            }
-                            // Return the predicted class
-//                Toast.makeText(getApplicationContext(), "Class is: " + predictedClassIndex, Toast.LENGTH_SHORT).show();
-                            int compensateFloor = 0;
-                            String result = "C" + predictedClassIndex;
-                            if (predictedClassIndex == 4 | predictedClassIndex == 5 | predictedClassIndex == 6) {
-                                String res2 = KNN_FLOORS.classifyLocation(TESTING_POINT);
-                                if (Objects.equals(res2, "C6")) {
-                                    compensateFloor = 6;
-                                } else if (Objects.equals(res2, "C5")) {
-                                    compensateFloor = 5;
-                                } else {
-                                    compensateFloor = 4;
-                                }
-                                Toast.makeText(getApplicationContext(), "We are at: " + " Cell " + compensateFloor, Toast.LENGTH_SHORT).show();
-                                result = "C" + compensateFloor;
-                            }
-                            location.setText(result);
-                            gatherDataButton.setEnabled(true);
-                            cellSelect.setEnabled(true);
-                            trackButton.setEnabled(true);
-                            specButton.setEnabled(true);
-                            positionButton.setEnabled(true);
-                            TESTING_POINT = null;
+                    int predictedClassIndex = 0;
+                    if (!duoCNN.isChecked()) {
+                        predictedClassIndex = CNN_C1_C16.classifyImage(plotTest);
+                    }else {
+                        if (Objects.equals(WestEast, "west")) {
+                            predictedClassIndex = CNN_C1_C9.classifyImage(plotTest);
+                        }else {
+                            predictedClassIndex = CNN_C11_C16.classifyImage(plotTest) + 10;
                         }
-                    }, 3500);
+                    }
+                    // Return the predicted class
+//                Toast.makeText(getApplicationContext(), "Class is: " + predictedClassIndex, Toast.LENGTH_SHORT).show();
+                    int compensateFloor = 0;
+                    String result = "C" + predictedClassIndex;
+                    if (predictedClassIndex == 4 | predictedClassIndex == 5 | predictedClassIndex == 6) {
+                        String res2 = KNN_FLOORS.classifyLocation(SAVING_POINT);
+                        if (Objects.equals(res2, "C6")) {
+                            compensateFloor = 6;
+                        } else if (Objects.equals(res2, "C5")) {
+                            compensateFloor = 5;
+                        } else {
+                            compensateFloor = 4;
+                        }
+                        Toast.makeText(getApplicationContext(), "We are at: " + " Cell " + compensateFloor, Toast.LENGTH_SHORT).show();
+                        result = "C" + compensateFloor;
+                    }
+                    location.setText(result);
+                    gatherDataButton.setEnabled(true);
+                    cellSelect.setEnabled(true);
+                    trackButton.setEnabled(true);
+                    specButton.setEnabled(true);
+                    positionButton.setEnabled(true);
+
+//                    // this is for the purpose of cleaning up the previous data saved
+//                    TESTING_POINT = createPointFromScan("Initialize");
+//                    Toast.makeText(getApplicationContext(), "Precise WIFI localization activated", Toast.LENGTH_SHORT).show();
+//                    // pause for 3.5 seconds
+//                    new Handler().postDelayed(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            TESTING_POINT = createPointFromScan("Test");
+//                            if (TESTING_POINT == null) {
+//                                Toast.makeText(getApplicationContext(), "Please press the button again", Toast.LENGTH_SHORT).show();
+//                                return;
+//                            }
+//                            String res = KNN_EAST_WEST.classifyLocation(TESTING_POINT);
+//                            // Checking if res is between C1 and C10
+//                            int resInt = Integer.parseInt(res.substring(1)); // Assuming res is always in format "Cxx"
+//                            String eastWest = (resInt >= 1 && resInt <= 10) ? "west" : "east";
+//                            Toast.makeText(getApplicationContext(), "We are at: " + eastWest, Toast.LENGTH_SHORT).show();
+//                            CHIRP_SIGNAL = generateChirpSignal();
+//                            CHIRP_AUDIO = formAudioTrack(CHIRP_SIGNAL);
+//                            FILE_NAME = generateFileName();
+//                            FILE_NAME_2 = generateFileName2();
+//                            FILE_NAME_3 = generateFileNameTest();
+//                            FILE_NAME_CELL2 = "Track" + ".csv";
+//                            recordAudio(RECORDING_DURATION);
+//                            INDEX_SIGNAL_OUTPUT = findChirpSignalIndex(CHIRP_SIGNAL, generateFilePath());
+//                            extractAudioSegmentIndex();
+//                            Bitmap plot = plotSpectrogram();
+//                            spectrogramFull.setImageBitmap(plot);
+//                            Bitmap plot2 = plotSpectrogram2();
+//                            spectrogramExtract.setImageBitmap(plot2);
+//                            Bitmap plot3 = plotSpectrogram3();
+//                            spectrogramSmallExtract.setImageBitmap(plot3);
+//                            Bitmap plotSave = plotSpectrogramSave();
+//                            Bitmap plotTest = plotSpectrogramTest();
+//                            // Save the bitmap to a file
+//                            File file = new File(generateFilePathTest());
+//                            try {
+//                                FileOutputStream fos = new FileOutputStream(file);
+//                                plotSave.compress(Bitmap.CompressFormat.PNG, 100, fos); // Adjust the compression quality as needed
+//                                fos.close();
+//                            } catch (IOException e) {
+//                                e.printStackTrace();
+//                            }
+//                            // Then apply the model here to determine position
+////                        int predictedClassIndex = mImageClassifier.classifyImage(plotTest);
+//                            int predictedClassIndex = 0;
+//                            if (!duoCNN.isChecked()) {
+//                                predictedClassIndex = CNN_C1_C16.classifyImage(plotTest);
+//                            }else {
+//                                if (Objects.equals(eastWest, "west")) {
+//                                    predictedClassIndex = CNN_C1_C9.classifyImage(plotTest);
+//                                }else {
+//                                    predictedClassIndex = CNN_C11_C16.classifyImage(plotTest) + 10;
+//                                }
+//                            }
+//                            // Return the predicted class
+////                Toast.makeText(getApplicationContext(), "Class is: " + predictedClassIndex, Toast.LENGTH_SHORT).show();
+//                            int compensateFloor = 0;
+//                            String result = "C" + predictedClassIndex;
+//                            if (predictedClassIndex == 4 | predictedClassIndex == 5 | predictedClassIndex == 6) {
+//                                String res2 = KNN_FLOORS.classifyLocation(TESTING_POINT);
+//                                if (Objects.equals(res2, "C6")) {
+//                                    compensateFloor = 6;
+//                                } else if (Objects.equals(res2, "C5")) {
+//                                    compensateFloor = 5;
+//                                } else {
+//                                    compensateFloor = 4;
+//                                }
+//                                Toast.makeText(getApplicationContext(), "We are at: " + " Cell " + compensateFloor, Toast.LENGTH_SHORT).show();
+//                                result = "C" + compensateFloor;
+//                            }
+//                            location.setText(result);
+//                            gatherDataButton.setEnabled(true);
+//                            cellSelect.setEnabled(true);
+//                            trackButton.setEnabled(true);
+//                            specButton.setEnabled(true);
+//                            positionButton.setEnabled(true);
+//                            TESTING_POINT = null;
+//                        }
+//                    }, 3500);
                 }
 
             }
