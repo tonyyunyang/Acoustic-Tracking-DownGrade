@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageClassifier CNN_C1_C9;
     private ImageClassifier CNN_C11_C16;
     private String CNN_MODEL_ALL = "model_android_16.ptl";
-    private String CNN_MODEL_ONE = "model_android_9.ptl";
+    private String CNN_MODEL_ONE = "model_android_10.ptl";
     private String CNN_MODEL_TWO = "model_android_11_16.ptl";
     private ArrayList<Point> WEST_EAST_RSS = new ArrayList<>(); // dataset for distinguishing east and west
     private ArrayList<Point> FLOOR_RSS = new ArrayList<>(); // dataset for distinguishing floor1, floor2 and floor3 (cell4, 5, 6)
@@ -135,8 +135,8 @@ public class MainActivity extends AppCompatActivity {
 
         buildingMap.setImageResource(R.drawable.map);
 
-        fillDataListASCII(WEST_EAST_RSS, "eastwest");
-        fillDataListASCII(FLOOR_RSS, "floors");
+        fillDataListASCII(WEST_EAST_RSS, "eastwest_ev");
+        fillDataListASCII(FLOOR_RSS, "floors_ev");
 
         // create the KNN model for classification
         KNN_EAST_WEST = new KNN(WEST_EAST_RSS, KNN_EAST_WEST_K_SIZE);
@@ -181,6 +181,11 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
+        cellSelect.setEnabled(false);
+        trackButton.setEnabled(false);
+        specButton.setEnabled(false);
+        gatherDataButton.setEnabled(false);
+
 
         // Start the Runnable immediately.
         mEastWest.post(mRunnableEastWest);
@@ -215,10 +220,10 @@ public class MainActivity extends AppCompatActivity {
 //                extractAudioSegment();
                 extractAudioSegmentIndex();
 //                Toast.makeText(getApplicationContext(), "Acoustic Tracking Done", Toast.LENGTH_SHORT).show();
-                gatherDataButton.setEnabled(true);
-                cellSelect.setEnabled(true);
-                trackButton.setEnabled(true);
-                specButton.setEnabled(true);
+//                gatherDataButton.setEnabled(true);
+//                cellSelect.setEnabled(true);
+//                trackButton.setEnabled(true);
+//                specButton.setEnabled(true);
                 positionButton.setEnabled(true);
             }
         });
@@ -250,10 +255,10 @@ public class MainActivity extends AppCompatActivity {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                gatherDataButton.setEnabled(true);
-                cellSelect.setEnabled(true);
-                trackButton.setEnabled(true);
-                specButton.setEnabled(true);
+//                gatherDataButton.setEnabled(true);
+//                cellSelect.setEnabled(true);
+//                trackButton.setEnabled(true);
+//                specButton.setEnabled(true);
                 positionButton.setEnabled(true);
             }
         });
@@ -460,10 +465,10 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(getApplicationContext(), "Most likely at: " + " Cell " + predictedClassIndex[0], Toast.LENGTH_SHORT).show();
                     String result = "1st: " + "C" + predictedClassIndex[0] + " 2nd: " + "C" + predictedClassIndex[1] + " 3rd: " + "C" + predictedClassIndex[2];
                     location.setText(result);
-                    gatherDataButton.setEnabled(true);
-                    cellSelect.setEnabled(true);
-                    trackButton.setEnabled(true);
-                    specButton.setEnabled(true);
+//                    gatherDataButton.setEnabled(true);
+//                    cellSelect.setEnabled(true);
+//                    trackButton.setEnabled(true);
+//                    specButton.setEnabled(true);
                     positionButton.setEnabled(true);
 //                    TESTING_POINT = null;
 
@@ -527,10 +532,10 @@ public class MainActivity extends AppCompatActivity {
                         result = "1st: " + "C" + compensateFloor + " 2nd: " + "C" + predictedClassIndex[1] + " 3rd: " + "C" + predictedClassIndex[2];
                     }
                     location.setText(result);
-                    gatherDataButton.setEnabled(true);
-                    cellSelect.setEnabled(true);
-                    trackButton.setEnabled(true);
-                    specButton.setEnabled(true);
+//                    gatherDataButton.setEnabled(true);
+//                    cellSelect.setEnabled(true);
+//                    trackButton.setEnabled(true);
+//                    specButton.setEnabled(true);
                     positionButton.setEnabled(true);
 
 //                    // this is for the purpose of cleaning up the previous data saved
